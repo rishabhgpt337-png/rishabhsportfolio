@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0908" />
+<meta name="description" content="[YOUR_META_DESCRIPTION]" />
+<title>[YOUR_NAME] — [YOUR_TITLE_HERE]</title>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0908'/%3E%3Cpath d='M8 24V8h4v12h12v4H8z' fill='%23c8a46a'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<script>document.documentElement.classList.remove('no-js');</script>
+
+<style>
+/* ============================================================
+   0. TOKENS
+   ============================================================ */
+:root{
+  --ink:#0a0908;
+  --ink-2:#0e0c0a;
+  --ink-3:#14110e;
+  --bone:#ebe5da;
+  --bone-2:#b9b1a4;
+  --bone-3:#7d766b;
+  --brass:#c8a46a;
+  --brass-soft:rgba(200,164,106,.16);
+  --line:rgba(235,229,218,.13);
+  --line-strong:rgba(235,229,218,.26);
+
+  --sans:'Inter Tight',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --ease:cubic-bezier(.16,1,.3,1);
+  --ease-io:cubic-bezier(.65,0,.35,1);
+
+  --gutter:clamp(1.15rem,4vw,4.5rem);
+  --gap:clamp(.9rem,1.6vw,1.75rem);
+  --max:1680px;
+  --header-h:clamp(3.75rem,5vw,5rem);
+  --section-y:clamp(5rem,10vw,11rem);
+}
+
+/* ============================================================
+   1. RESET
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:auto}
+body{
+  margin:0;
+  min-height:100%;
+  background:var(--ink);
+  color:var(--bone);
+  font-family:var(--sans);
+  font-size:clamp(.95rem,.28vw + .88rem,1.0625rem);
+  font-weight:400;
+  line-height:1.6;
+  letter-spacing:-.005em;
+  overflow-x:clip;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+img,svg,video{display:block;max-width:100%}
+h1,h2,h3,h4,p,figure,blockquote{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+::selection{background:var(--brass);color:#100d09}
+
+/* ============================================================
+   2. LENIS
+   ============================================================ */
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+.lenis.lenis-smooth [data-lenis-prevent]{overscroll-behavior:contain}
+.lenis.lenis-stopped{overflow:hidden}
+.lenis.lenis-smooth iframe{pointer-events:none}
+html.is-locked,html.is-locked body{overflow:hidden}
+
+/* ============================================================
+   3. ATMOSPHERE
+   ============================================================ */
+.atmosphere{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.atmosphere__glow{
+  position:absolute;
+  inset:-25% -10% auto -10%;
+  height:80vmax;
+  background:
+    radial-gradient(46% 46% at 68% 18%,rgba(200,164,106,.11),transparent 68%),
+    radial-gradient(52% 52% at 18% 8%,rgba(120,110,95,.09),transparent 70%);
+  filter:blur(6px);
+}
+.atmosphere__vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 50% 40%,transparent 42%,rgba(0,0,0,.55) 100%);
+}
+.grain{
+  position:fixed;inset:-50%;z-index:9998;pointer-events:none;
+  opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 8s steps(6) infinite;
+}
+@keyframes grain{
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-2%,1%)}
+  40%{transform:translate(1%,-2%)}
+  60%{transform:translate(-1%,-1%)}
+  80%{transform:translate(2%,1%)}
+}
+
+/* ============================================================
+   4. LAYOUT PRIMITIVES
+   ============================================================ */
+.shell{
+  width:100%;
+  max-width:var(--max);
+  margin-inline:auto;
+  padding-inline:var(--gutter);
+}
+main{position:relative;z-index:1}
+.section{padding-block:var(--section-y);position:relative}
+.section--tight{padding-block:clamp(3.5rem,6vw,6.5rem)}
+
+.mono{
+  font-family:var(--mono);
+  font-size:clamp(.6rem,.14vw + .57rem,.7rem);
+  font-weight:400;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  line-height:1.5;
+  color:var(--bone-2);
+}
+.brass{color:var(--brass)}
+.rule{height:1px;width:100%;background:var(--line)}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.skip{
+  position:fixed;top:.75rem;left:.75rem;z-index:200;
+  transform:translateY(-160%);
+  background:var(--bone);color:var(--ink);
+  padding:.65rem 1rem;border-radius:2px;
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+  transition:transform .3s var(--ease);
+}
+.skip:focus-visible{transform:translateY(0);outline:2px solid var(--brass);outline-offset:3px}
+
+.eyebrow{
+  display:flex;align-items:center;gap:.9rem;
+  color:var(--bone-3);
+}
+.eyebrow__num{color:var(--brass);font-variant-numeric:tabular-nums}
+.eyebrow__line{display:block;width:clamp(1.5rem,4vw,3.5rem);height:1px;background:var(--line-strong)}
+
+.section-head{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+  gap:1.5rem;
+  padding-bottom:clamp(1.5rem,3vw,2.75rem);
+  border-bottom:1px solid var(--line);
+  margin-bottom:clamp(2rem,5vw,4.5rem);
+}
+.section-title{
+  font-size:clamp(1.75rem,5.2vw,4.75rem);
+  overflow-wrap:anywhere;
+  font-weight:500;
+  line-height:.94;
+  letter-spacing:-.04em;
+  text-transform:uppercase;
+  margin-top:.75rem;
+}
+.section-note{max-width:26ch;color:var(--bone-2);font-size:.95rem;line-height:1.65}
+
+/* ============================================================
+   5. CURSOR
+   ============================================================ */
+.cursor,.cursor-ring{
+  position:fixed;top:0;left:0;z-index:9999;
+  pointer-events:none;
+  border-radius:50%;
+  opacity:0;
+  transition:opacity .35s linear;
+  will-change:transform;
+}
+.cursor{
+  width:6px;height:6px;margin:-3px 0 0 -3px;
+  background:var(--brass);
+}
+.cursor-ring{
+  width:38px;height:38px;margin:-19px 0 0 -19px;
+  border:1px solid rgba(200,164,106,.55);
+  transition:opacity .35s linear,width .35s var(--ease),height .35s var(--ease),margin .35s var(--ease),background-color .35s linear,border-color .35s linear;
+}
+html.has-cursor .cursor,html.has-cursor .cursor-ring{opacity:1}
+html.has-cursor,html.has-cursor a,html.has-cursor button{cursor:none}
+html.has-cursor .cursor-ring.is-active{
+  width:64px;height:64px;margin:-32px 0 0 -32px;
+  background:rgba(200,164,106,.08);
+  border-color:rgba(200,164,106,.85);
+}
+
+/* ============================================================
+   6. HEADER
+   ============================================================ */
+.header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--header-h);
+  display:flex;align-items:center;
+  transition:background-color .5s var(--ease),border-color .5s var(--ease),backdrop-filter .5s var(--ease);
+  border-bottom:1px solid transparent;
+}
+.header::after{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(to bottom,rgba(10,9,8,.85),rgba(10,9,8,0));
+  opacity:0;transition:opacity .5s var(--ease);
+}
+.header.is-scrolled::after{opacity:1}
+.header.is-scrolled{
+  border-bottom-color:var(--line);
+  background:rgba(10,9,8,.72);
+  -webkit-backdrop-filter:blur(14px) saturate(120%);
+  backdrop-filter:blur(14px) saturate(120%);
+}
+.header__inner{
+  display:flex;align-items:center;justify-content:space-between;gap:1.25rem;
+  width:100%;
+}
+.brand{display:inline-flex;align-items:center;gap:.6rem}
+.brand__mark{
+  display:grid;place-items:center;
+  width:2rem;height:2rem;
+  border:1px solid var(--line-strong);
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.05em;color:var(--brass);
+  transition:border-color .4s var(--ease),color .4s var(--ease),transform .5s var(--ease);
+}
+.brand:hover .brand__mark{border-color:var(--brass);transform:rotate(-4deg)}
+.brand__name{
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bone);
+}
+.header__mid{display:none;color:var(--bone-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header__right{display:flex;align-items:center;gap:clamp(1rem,2.5vw,2.25rem)}
+.clock{display:none;align-items:center;gap:.55rem;color:var(--bone-3);font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase}
+.clock__dot{width:5px;height:5px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 0 rgba(200,164,106,.5);animation:pulse 2.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(200,164,106,0)}100%{box-shadow:0 0 0 0 rgba(200,164,106,0)}}
+
+.menu-toggle{
+  display:inline-flex;align-items:center;gap:.7rem;
+  padding:.45rem 0;
+}
+.menu-toggle__label{font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-2)}
+.menu-toggle__bars{position:relative;width:26px;height:14px;display:inline-block}
+.menu-toggle__bars i{
+  position:absolute;left:0;width:100%;height:1px;background:var(--bone);
+  transition:transform .5s var(--ease),background-color .4s linear,top .5s var(--ease),width .5s var(--ease);
+}
+.menu-toggle__bars i:nth-child(1){top:3px}
+.menu-toggle__bars i:nth-child(2){top:10px;width:64%;margin-left:auto;right:0;left:auto}
+.menu-toggle:hover .menu-toggle__bars i:nth-child(2){width:100%}
+.menu-toggle[aria-expanded="true"] .menu-toggle__bars i{background:var(--brass)}
+.menu-toggle[aria-expanded="true"] .menu-toggle__bars i:nth-child(1){top:7px;transform:rotate(45deg)}
+.menu-toggle[aria-expanded="true"] .menu-toggle__bars i:nth-child(2){top:7px;transform:rotate(-45deg);width:100%}
+
+/* ============================================================
+   7. MENU OVERLAY
+   ============================================================ */
+.menu{
+  position:fixed;inset:0;z-index:90;
+  background:var(--ink-2);
+  clip-path:inset(0 0 100% 0);
+  visibility:hidden;
+  transition:clip-path .85s var(--ease),visibility 0s linear .85s;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+}
+.menu__inner > *{min-width:0}
+.menu.is-open{
+  clip-path:inset(0 0 0 0);
+  visibility:visible;
+  transition:clip-path .85s var(--ease),visibility 0s linear 0s;
+}
+.menu::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(60% 50% at 80% 0%,rgba(200,164,106,.10),transparent 70%),
+    radial-gradient(50% 60% at 0% 100%,rgba(120,110,95,.08),transparent 70%);
+}
+.menu__inner{
+  position:relative;
+  min-height:100vh;min-height:100svh;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:clamp(2rem,5vw,4rem);
+  padding-top:calc(var(--header-h) + clamp(2.5rem,7vh,5.5rem));
+  padding-bottom:clamp(2.5rem,6vh,4rem);
+}
+.menu__nav{display:flex;flex-direction:column;min-width:0}
+.menu__link{
+  position:relative;
+  display:flex;align-items:baseline;gap:clamp(.85rem,2vw,1.75rem);
+  padding-block:clamp(.45rem,1.4vh,1rem);
+  border-bottom:1px solid var(--line);
+  opacity:0;transform:translateY(26px);
+  transition:opacity .6s var(--ease),transform .8s var(--ease);
+}
+.menu.is-open .menu__link{opacity:1;transform:none}
+.menu.is-open .menu__link:nth-child(1){transition-delay:.28s}
+.menu.is-open .menu__link:nth-child(2){transition-delay:.36s}
+.menu.is-open .menu__link:nth-child(3){transition-delay:.44s}
+.menu.is-open .menu__link:nth-child(4){transition-delay:.52s}
+.menu.is-open .menu__link:nth-child(5){transition-delay:.60s}
+.menu__num{color:var(--brass);font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;min-width:2.2rem}
+.menu__word{
+  font-size:clamp(1.9rem,7.6vw,6.5rem);
+  font-weight:500;line-height:1;letter-spacing:-.045em;text-transform:uppercase;
+  transition:color .4s var(--ease),transform .6s var(--ease);
+  display:inline-block;
+  min-width:0;
+}
+.menu__link:hover .menu__word,
+.menu__link:focus-visible .menu__word{color:var(--brass);transform:translateX(clamp(.35rem,1vw,1rem))}
+.menu__link .menu__arrow{
+  margin-left:auto;font-size:1rem;color:var(--bone-3);
+  opacity:0;transform:translate(-8px,4px);
+  transition:opacity .4s var(--ease),transform .5s var(--ease);
+}
+.menu__link:hover .menu__arrow{opacity:1;transform:none;color:var(--brass)}
+.menu__side{
+  display:grid;gap:clamp(1.5rem,3vw,2.5rem);
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  align-content:end;
+  border-top:1px solid var(--line);
+  padding-top:clamp(1.5rem,3vw,2.25rem);
+}
+.menu__side h3{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-3);margin-bottom:.85rem}
+.menu__side a,.menu__side p{font-size:clamp(.95rem,1.2vw,1.15rem);color:var(--bone);line-height:1.5}
+.menu__side a{position:relative;display:inline-block}
+.menu__side a::after{content:"";position:absolute;left:0;bottom:-2px;width:100%;height:1px;background:var(--brass);transform:scaleX(0);transform-origin:right;transition:transform .5s var(--ease)}
+.menu__side a:hover::after{transform:scaleX(1);transform-origin:left}
+.menu__side .mono{display:block;margin-top:.4rem}
+
+/* ============================================================
+   8. HERO
+   ============================================================ */
+.hero{
+  position:relative;
+  min-height:100vh;min-height:100svh;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding-top:calc(var(--header-h) + 2rem);
+  padding-bottom:clamp(1.5rem,3.5vw,2.75rem);
+  overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;left:var(--gutter);right:var(--gutter);bottom:0;height:1px;background:var(--line);
+}
+.hero__inner{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;
+  flex:1;
+  justify-content:space-between;
+  gap:clamp(1.5rem,4vh,3rem);
+  width:100%;
+  will-change:transform,opacity;
+}
+.hero__meta{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:.75rem 1.5rem;
+  color:var(--bone-3);
+}
+.hero__meta span{display:inline-flex;align-items:center;gap:.55rem}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--brass);display:inline-block}
+
+.hero__title{
+  margin-block:auto;
+  font-weight:500;
+  font-size:clamp(2.35rem,11.5vw,13.5rem);
+  line-height:.9;
+  letter-spacing:-.052em;
+  text-transform:uppercase;
+}
+.hl{display:block;overflow:hidden;padding-block:.045em;margin-block:-.045em}
+.hl > span{
+  display:block;
+  transform:translateY(112%);
+  transition:transform 1.25s var(--ease);
+  transition-delay:calc(.12s + var(--i,0) * .1s);
+  will-change:transform;
+}
+html.is-ready .hl > span{transform:translateY(0)}
+.hl--indent{padding-left:clamp(1rem,9vw,11rem)}
+.hl--indent > span{color:var(--bone-2)}
+.hl--indent > span .bracket{color:var(--brass)}
+
+.hero__bottom{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:1.25rem;
+  align-items:end;
+  padding-top:clamp(.5rem,2vh,1.5rem);
+}
+.hero__lede{max-width:34ch;color:var(--bone-2);font-size:clamp(.92rem,1.15vw,1.05rem);line-height:1.6}
+.hero__cue{
+  display:inline-flex;align-items:center;gap:.8rem;
+  color:var(--bone-3);justify-self:start;
+}
+.hero__cue-line{
+  position:relative;display:block;width:1px;height:clamp(2rem,5vh,3.5rem);
+  background:var(--line-strong);overflow:hidden;
+}
+.hero__cue-line::after{
+  content:"";position:absolute;top:0;left:0;width:100%;height:42%;
+  background:var(--brass);
+  animation:cue 2.4s var(--ease) infinite;
+}
+@keyframes cue{
+  0%{transform:translateY(-110%)}
+  55%{transform:translateY(120%)}
+  100%{transform:translateY(120%)}
+}
+.hero__index{color:var(--bone-3);justify-self:start;font-variant-numeric:tabular-nums}
+.hero__index b{color:var(--bone);font-weight:400}
+
+/* ============================================================
+   9. MARQUEE
+   ============================================================ */
+.marquee{
+  position:relative;z-index:1;
+  border-block:1px solid var(--line);
+  padding-block:clamp(.85rem,1.6vw,1.25rem);
+  overflow:hidden;
+  background:rgba(14,12,10,.5);
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 8%,#000 92%,transparent);
+  mask-image:linear-gradient(to right,transparent,#000 8%,#000 92%,transparent);
+}
+.marquee__track{display:flex;width:max-content;animation:marquee 42s linear infinite}
+.marquee__group{display:flex;align-items:center;flex:0 0 auto}
+.marquee__item{
+  display:inline-flex;align-items:center;gap:clamp(1.25rem,3vw,2.75rem);
+  padding-right:clamp(1.25rem,3vw,2.75rem);
+  font-family:var(--mono);font-size:clamp(.62rem,.85vw,.75rem);
+  letter-spacing:.22em;text-transform:uppercase;color:var(--bone-3);white-space:nowrap;
+}
+.marquee__item i{width:4px;height:4px;background:var(--brass);border-radius:50%;display:inline-block;flex:0 0 auto}
+.marquee:hover .marquee__track{animation-play-state:paused}
+@keyframes marquee{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+
+/* ============================================================
+   10. MANIFESTO
+   ============================================================ */
+.manifesto{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gap);row-gap:clamp(2rem,4vw,3.5rem)}
+.manifesto__head{grid-column:1/-1}
+.manifesto__body{grid-column:1/-1}
+.statement{
+  font-size:clamp(1.5rem,4.4vw,4rem);
+  overflow-wrap:anywhere;
+  line-height:1.06;
+  letter-spacing:-.035em;
+  font-weight:400;
+  text-transform:uppercase;
+}
+.statement em{font-style:normal;color:var(--brass)}
+.statement .dim{color:var(--bone-3)}
+.manifesto__aside{grid-column:1/-1;display:grid;gap:1.5rem;align-content:start}
+.manifesto__aside > p{color:var(--bone-2);max-width:42ch;font-size:clamp(.92rem,1.05vw,1rem);line-height:1.7}
+.manifesto__facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1.25rem;border-top:1px solid var(--line);padding-top:1.5rem}
+.fact__num{font-size:clamp(1.5rem,2.6vw,2.4rem);font-weight:500;letter-spacing:-.04em;line-height:1;color:var(--bone)}
+.fact__num sup{font-family:var(--mono);font-size:.5em;color:var(--brass);top:-.9em}
+.fact__label{margin-top:.45rem;color:var(--bone-3);letter-spacing:.08em;overflow-wrap:anywhere}
+
+/* ============================================================
+   11. ABOUT
+   ============================================================ */
+.about__grid{display:grid;grid-template-columns:1fr;gap:clamp(2rem,5vw,4.5rem);align-items:start}
+.about__portrait{position:relative}
+.frame{
+  position:relative;
+  display:block;
+  width:100%;
+  overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 18% 0%,rgba(200,164,106,.12),transparent 58%),
+    linear-gradient(155deg,#17130f 0%,#0d0b09 58%,#0a0908 100%);
+  border:1px solid var(--line);
+  isolation:isolate;
+  transition:border-color .6s var(--ease),transform .8s var(--ease);
+}
+.frame::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(to right,rgba(235,229,218,.055) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(235,229,218,.055) 1px,transparent 1px);
+  background-size:25% 25%;
+  opacity:.75;
+  transition:opacity .6s var(--ease),transform 1.4s var(--ease);
+}
+.frame::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(70% 60% at 50% 50%,transparent 30%,rgba(0,0,0,.5) 100%);
+}
+.frame__label{
+  position:absolute;z-index:2;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.85rem;
+  text-align:center;
+  padding:1.25rem;
+  color:var(--bone-3);
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.24em;text-transform:uppercase;
+  transition:color .5s var(--ease),letter-spacing .6s var(--ease);
+}
+.frame__cross{position:relative;width:22px;height:22px;opacity:.85}
+.frame__cross::before,.frame__cross::after{
+  content:"";position:absolute;background:var(--brass);opacity:.65;
+  transition:transform .6s var(--ease),opacity .5s linear;
+}
+.frame__cross::before{left:50%;top:0;width:1px;height:100%;transform:translateX(-50%)}
+.frame__cross::after{top:50%;left:0;height:1px;width:100%;transform:translateY(-50%)}
+.frame__tag{
+  position:absolute;z-index:2;top:clamp(.8rem,1.4vw,1.1rem);left:clamp(.8rem,1.4vw,1.1rem);
+  display:flex;align-items:center;gap:.5rem;
+  color:var(--bone-3);
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;
+}
+.frame__tag::before{content:"";width:5px;height:5px;border:1px solid var(--brass);border-radius:50%}
+.frame__corner{
+  position:absolute;z-index:2;width:10px;height:10px;border:1px solid rgba(235,229,218,.28);
+  transition:border-color .5s var(--ease)
+}
+.frame__corner--tl{top:.6rem;left:.6rem;border-right:0;border-bottom:0}
+.frame__corner--tr{top:.6rem;right:.6rem;border-left:0;border-bottom:0}
+.frame__corner--bl{bottom:.6rem;left:.6rem;border-right:0;border-top:0}
+.frame__corner--br{bottom:.6rem;right:.6rem;border-left:0;border-top:0}
+.frame__sweep{
+  position:absolute;z-index:1;left:0;top:-20%;width:100%;height:18%;
+  background:linear-gradient(to bottom,transparent,rgba(200,164,106,.14),transparent);
+  opacity:0;transform:translateY(0);
+  transition:opacity .3s linear;
+  pointer-events:none;
+}
+.frame:hover,.work__link:hover .frame,.work__link:focus-visible .frame{border-color:rgba(200,164,106,.42)}
+.frame:hover::before,.work__link:hover .frame::before{opacity:1;transform:scale(1.06)}
+.frame:hover .frame__label{color:var(--bone);letter-spacing:.28em}
+.frame:hover .frame__cross::before{transform:translateX(-50%) rotate(90deg)}
+.frame:hover .frame__cross::after{transform:translateY(-50%) rotate(90deg)}
+.frame:hover .frame__sweep{opacity:1;animation:sweep 1.8s var(--ease) forwards}
+@keyframes sweep{from{transform:translateY(0)}to{transform:translateY(700%)}}
+.frame--portrait{aspect-ratio:4/5}
+.frame__caption{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding-top:.85rem;color:var(--bone-3);
+}
+
+.about__content{display:grid;gap:clamp(1.75rem,3vw,2.75rem)}
+.about__heading{
+  font-size:clamp(1.5rem,3.2vw,2.6rem);
+  font-weight:400;line-height:1.1;letter-spacing:-.03em;max-width:18ch;
+}
+.about__copy{display:grid;gap:1.1rem;max-width:52ch;color:var(--bone-2)}
+.about__copy p{line-height:1.72}
+.about__copy .lede{color:var(--bone);font-size:clamp(1rem,1.25vw,1.15rem)}
+
+.skills{display:grid;gap:0;border-top:1px solid var(--line)}
+.skill{
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:.4rem 1rem;
+  padding-block:.95rem;border-bottom:1px solid var(--line);
+}
+.skill__name{font-size:.95rem;color:var(--bone)}
+.skill__val{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:var(--bone-3);font-variant-numeric:tabular-nums}
+.skill__track{grid-column:1/-1;height:1px;background:rgba(235,229,218,.1);position:relative;overflow:hidden}
+.skill__bar{position:absolute;inset:0 auto 0 0;width:0;background:var(--brass);transition:width 1.4s var(--ease)}
+.skills.is-in .skill__bar{width:var(--v,50%)}
+.skills.is-in .skill:nth-child(2) .skill__bar{transition-delay:.08s}
+.skills.is-in .skill:nth-child(3) .skill__bar{transition-delay:.16s}
+.skills.is-in .skill:nth-child(4) .skill__bar{transition-delay:.24s}
+.skills.is-in .skill:nth-child(5) .skill__bar{transition-delay:.32s}
+.skills.is-in .skill:nth-child(6) .skill__bar{transition-delay:.4s}
+
+.timeline{display:grid;gap:0;border-top:1px solid var(--line)}
+.timeline__row{
+  display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;
+  padding-block:1rem;border-bottom:1px solid var(--line);align-items:baseline;
+}
+.timeline__year{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:var(--brass)}
+.timeline__role{font-size:.98rem;color:var(--bone);overflow-wrap:anywhere}
+.timeline__org{grid-column:2;color:var(--bone-3);font-size:.85rem;margin-top:-.15rem}
+
+/* ============================================================
+   12. WORKS
+   ============================================================ */
+.work__grid{
+  display:grid;grid-template-columns:1fr;
+  gap:clamp(2.5rem,5vw,4.5rem);
+}
+.work{position:relative}
+.work__link{display:block}
+.work__link:focus-visible{outline:none}
+.work__link:focus-visible .frame{outline:2px solid var(--brass);outline-offset:4px}
+.frame--4-5{aspect-ratio:4/5}
+.frame--3-4{aspect-ratio:3/4}
+.frame--1-1{aspect-ratio:1/1}
+.frame--16-10{aspect-ratio:16/10}
+.frame--21-9{aspect-ratio:21/9}
+.frame--5-7{aspect-ratio:5/7}
+
+.work__meta{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;
+  gap:.35rem 1rem;padding-top:1rem;
+}
+.work__num{color:var(--brass);font-variant-numeric:tabular-nums}
+.work__title{
+  font-size:clamp(1.05rem,1.7vw,1.6rem);
+  overflow-wrap:anywhere;
+  font-weight:400;letter-spacing:-.02em;line-height:1.2;
+  transition:color .4s var(--ease),transform .5s var(--ease);
+}
+.work__link:hover .work__title{color:var(--brass);transform:translateX(4px)}
+.work__arrow{
+  font-size:1rem;line-height:1;color:var(--bone-3);
+  transition:transform .5s var(--ease),color .4s linear;
+}
+.work__link:hover .work__arrow{transform:translate(4px,-4px);color:var(--brass)}
+.work__sub{
+  display:flex;grid-column:2/-1;flex-wrap:wrap;gap:.35rem 1rem;
+  color:var(--bone-3);
+}
+.work__sub span{display:inline-flex;align-items:center;gap:.5rem}
+.work__sub span + span::before{content:"";width:3px;height:3px;border-radius:50%;background:var(--bone-3);opacity:.6}
+.work__index{
+  position:absolute;z-index:3;top:clamp(.8rem,1.4vw,1.1rem);right:clamp(.8rem,1.4vw,1.1rem);
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;color:var(--bone-3);
+  transition:color .4s linear;
+}
+.work__link:hover .work__index{color:var(--brass)}
+
+.work-more{display:flex;justify-content:center;margin-top:clamp(2.75rem,6vw,5rem)}
+
+/* ============================================================
+   13. BUTTONS / LINKS
+   ============================================================ */
+.btn{
+  position:relative;
+  display:inline-flex;align-items:center;gap:.85rem;
+  padding:clamp(.9rem,1.4vw,1.15rem) clamp(1.35rem,2.4vw,2rem);
+  border:1px solid var(--line-strong);
+  border-radius:999px;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--bone);
+  overflow:hidden;
+  transition:color .45s var(--ease),border-color .45s var(--ease);
+  will-change:transform;
+}
+.btn::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:var(--brass);
+  transform:translateY(101%);
+  transition:transform .6s var(--ease);
+}
+.btn > *{position:relative;z-index:1}
+.btn:hover{color:#100d09;border-color:var(--brass)}
+.btn:hover::before{transform:translateY(0)}
+.btn__dot{width:5px;height:5px;border-radius:50%;background:var(--brass);transition:background-color .45s var(--ease)}
+.btn:hover .btn__dot{background:#100d09}
+.btn__arrow{transition:transform .5s var(--ease)}
+.btn:hover .btn__arrow{transform:translate(3px,-3px)}
+
+/* ============================================================
+   14. SERVICES
+   ============================================================ */
+.services{border-top:1px solid var(--line)}
+.service{
+  position:relative;
+  display:grid;
+  grid-template-columns:2.25rem 1fr;
+  gap:.5rem 1rem;
+  padding-block:clamp(1.35rem,2.6vw,2.1rem);
+  border-bottom:1px solid var(--line);
+  transition:background-color .5s var(--ease),padding-inline .5s var(--ease);
+}
+.service::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:linear-gradient(90deg,rgba(200,164,106,.07),transparent 60%);
+  opacity:0;transition:opacity .5s var(--ease);
+}
+.service:hover::before{opacity:1}
+.service__num{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:var(--brass);padding-top:.42rem}
+.service > *{position:relative;z-index:1}
+.service__title{
+  font-size:clamp(1.15rem,2.3vw,2rem);
+  overflow-wrap:anywhere;font-weight:400;line-height:1.15;letter-spacing:-.025em;
+  transition:transform .55s var(--ease),color .4s linear;
+}
+.service:hover .service__title{transform:translateX(clamp(.25rem,.8vw,.6rem));color:var(--brass)}
+.service__desc{
+  grid-column:2;max-width:48ch;color:var(--bone-2);font-size:clamp(.88rem,1vw,.96rem);line-height:1.65;
+}
+.service__tags{grid-column:2;display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.75rem}
+.tag{
+  display:inline-flex;align-items:center;
+  padding:.35rem .7rem;
+  border:1px solid var(--line);
+  border-radius:999px;
+  font-family:var(--mono);font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--bone-3);
+  transition:border-color .4s linear,color .4s linear;
+}
+.service:hover .tag{border-color:rgba(200,164,106,.32);color:var(--bone-2)}
+
+/* ============================================================
+   15. CONTACT
+   ============================================================ */
+.contact{position:relative;border-top:1px solid var(--line)}
+.contact__grid{display:grid;gap:clamp(2.5rem,5vw,4rem)}
+.contact__heading{
+  font-size:clamp(1.75rem,6.5vw,5.5rem);
+  overflow-wrap:anywhere;
+  font-weight:500;line-height:.95;letter-spacing:-.05em;text-transform:uppercase;
+}
+.contact__heading span{color:var(--bone-3)}
+.contact__lead{max-width:40ch;color:var(--bone-2);margin-top:1.25rem;line-height:1.7}
+.contact__mail{
+  display:inline-block;position:relative;
+  margin-top:clamp(1.5rem,3vw,2.5rem);
+  font-size:clamp(1.15rem,3.6vw,3.25rem);
+  font-weight:400;letter-spacing:-.03em;line-height:1.15;
+  word-break:break-word;
+  transition:color .4s var(--ease);
+}
+.contact__mail::after{
+  content:"";position:absolute;left:0;bottom:-.08em;width:100%;height:1px;
+  background:var(--line-strong);
+  transform-origin:right;transition:transform .6s var(--ease),background-color .4s linear;
+}
+.contact__mail:hover{color:var(--brass)}
+.contact__mail:hover::after{transform:scaleX(0);background:var(--brass)}
+.contact__side{display:grid;gap:clamp(1.5rem,3vw,2.25rem);align-content:start}
+.contact__block h3{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-3);margin-bottom:.8rem}
+.contact__block ul{display:grid;gap:.45rem}
+.contact__block a{display:inline-flex;align-items:center;gap:.55rem;font-size:clamp(.9rem,1.1vw,1rem);color:var(--bone-2);transition:color .35s linear,transform .45s var(--ease)}
+.contact__block a::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--brass);opacity:0;transition:opacity .35s linear}
+.contact__block a:hover{color:var(--bone);transform:translateX(3px)}
+.contact__block a:hover::before{opacity:1}
+.contact__status{
+  display:inline-flex;align-items:center;gap:.55rem;
+  padding:.55rem .85rem;border:1px solid var(--line);border-radius:999px;
+  color:var(--bone-2);
+}
+.contact__status i{width:5px;height:5px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 0 rgba(200,164,106,.5);animation:pulse 2.8s infinite}
+
+/* ============================================================
+   16. FOOTER
+   ============================================================ */
+.footer{border-top:1px solid var(--line);padding-block:clamp(1.75rem,3vw,2.5rem)}
+.footer__inner{display:grid;gap:1.25rem;align-items:center;grid-template-columns:1fr}
+.footer__brand{display:flex;align-items:center;gap:.7rem}
+.footer__mark{width:1.6rem;height:1.6rem;display:grid;place-items:center;border:1px solid var(--line-strong);font-family:var(--mono);font-size:.55rem;color:var(--brass)}
+.footer__name{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase}
+.footer__meta{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;color:var(--bone-3)}
+.footer__clock{font-variant-numeric:tabular-nums;color:var(--bone-2)}
+.to-top{
+  display:inline-flex;align-items:center;gap:.6rem;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--bone-2);
+  justify-self:start;
+}
+.to-top span{transition:transform .5s var(--ease)}
+.to-top:hover{color:var(--brass)}
+.to-top:hover span{transform:translateY(-3px)}
+
+/* ============================================================
+   17. REVEALS
+   ============================================================ */
+.reveal{
+  opacity:0;transform:translateY(26px);
+  transition:opacity 1s var(--ease),transform 1.1s var(--ease);
+  transition-delay:var(--d,0s);
+  will-change:opacity,transform;
+}
+.reveal.is-in{opacity:1;transform:none}
+.reveal-img{clip-path:inset(0 0 100% 0)}
+.reveal-img.is-in{clip-path:inset(0 0 0 0);transition:clip-path 1.2s var(--ease),opacity .8s linear}
+.drop-line{
+  height:1px;width:100%;background:var(--line);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform 1.2s var(--ease);
+}
+.drop-line.is-in{transform:scaleX(1)}
+
+/* ============================================================
+   18. RESPONSIVE
+   ============================================================ */
+@media (min-width:600px){
+  .hero__bottom{grid-template-columns:1fr auto;grid-template-areas:"lede cue" "lede index";row-gap:1.5rem}
+  .hero__lede{grid-area:lede;max-width:38ch}
+  .hero__cue{grid-area:cue;justify-self:end;flex-direction:column-reverse;align-items:center}
+  .hero__cue .mono{writing-mode:vertical-rl;letter-spacing:.24em}
+  .hero__index{grid-area:index;justify-self:end}
+  .footer__inner{grid-template-columns:auto 1fr auto;gap:2rem}
+  .footer__meta{justify-content:center}
+  .to-top{justify-self:end}
+  .header__mid{display:none}
+  .clock{display:inline-flex}
+  .brand__name{font-size:.7rem}
+  .work__meta{grid-template-columns:3rem 1fr auto}
+}
+@media (min-width:760px){
+  .service{grid-template-columns:3.5rem 1.15fr 1fr;gap:1rem 2rem;align-items:start}
+  .service__desc{grid-column:3;margin-top:.2rem}
+  .service__tags{grid-column:3;margin-top:1rem}
+  .manifesto__head{grid-column:1/5}
+  .manifesto__body{grid-column:5/-1;padding-top:.35rem}
+  .manifesto__aside{grid-column:6/-1;grid-template-columns:1fr;padding-top:clamp(1rem,2vw,2rem)}
+}
+@media (min-width:900px){
+  .about__grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(3rem,6vw,6rem)}
+  .about__portrait{position:sticky;top:calc(var(--header-h) + 1.5rem)}
+  .contact__grid{grid-template-columns:1.35fr .65fr;gap:clamp(3rem,6vw,6rem)}
+  .menu__inner{grid-template-columns:1.55fr .45fr;align-items:end;gap:clamp(3rem,7vw,7rem)}
+  .menu{display:flex;align-items:stretch}
+  .menu__inner{width:100%}
+  .menu__side{border-top:0;border-left:1px solid var(--line);padding-top:0;padding-left:clamp(1.5rem,3vw,2.5rem);align-content:end}
+
+  .work__grid{grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gap);row-gap:clamp(3.5rem,7vw,7.5rem)}
+  .work:nth-child(1){grid-column:1/8}
+  .work:nth-child(2){grid-column:9/13;margin-top:clamp(3rem,14vw,13rem)}
+  .work:nth-child(3){grid-column:2/7;margin-top:clamp(0rem,2vw,2rem)}
+  .work:nth-child(4){grid-column:8/13;margin-top:clamp(2rem,7vw,6rem)}
+  .work:nth-child(5){grid-column:1/13}
+  .work:nth-child(6){grid-column:4/10;margin-top:clamp(0rem,2vw,2rem)}
+}
+@media (min-width:1100px){
+  .header__mid{display:block;flex:0 1 auto}
+  .manifesto__head{grid-column:1/4}
+  .manifesto__body{grid-column:4/11}
+  .manifesto__aside{grid-column:4/11;grid-template-columns:1.1fr .9fr;gap:clamp(2rem,4vw,4rem);padding-top:clamp(2rem,4vw,3.5rem)}
+  .statement{font-size:clamp(2.5rem,4.6vw,4.5rem)}
+}
+@media (min-width:1400px){
+  .hero{min-height:max(46rem,100svh)}
+}
+
+/* ============================================================
+   19. MOTION / CONTRAST PREFERENCES
+   ============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+  .reveal,.reveal-img{opacity:1;transform:none;clip-path:none}
+  .hl > span{transform:none}
+  .marquee__track{animation:none;transform:none}
+  .cursor,.cursor-ring{display:none}
+  .hero__inner{transform:none!important;opacity:1!important}
+  .grain{animation:none}
+}
+@media (prefers-contrast:more){
+  :root{--bone-2:#ded7ca;--bone-3:#a8a094;--line:rgba(235,229,218,.32);--line-strong:rgba(235,229,218,.5)}
+}
+@media (hover:none){
+  .frame__sweep{display:none}
+}
+@media (scripting:none){
+  .reveal,.reveal-img{opacity:1;transform:none;clip-path:none}
+  .hl > span{transform:none}
+}
+</style>
+</head>
+
+<body>
+<a class="skip" href="#main">[SKIP_LINK_LABEL]</a>
+
+<div class="atmosphere" aria-hidden="true">
+  <div class="atmosphere__glow"></div>
+  <div class="atmosphere__vignette"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="cursor" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header" id="site-header">
+  <div class="shell header__inner">
+    <a class="brand" href="#top" aria-label="[HOME_LABEL]">
+      <span class="brand__mark" aria-hidden="true">[LN]</span>
+      <span class="brand__name">[YOUR_NAME]</span>
+    </a>
+
+    <p class="mono header__mid">[YOUR_TITLE_HERE] — [YOUR_LOCATION]</p>
+
+    <div class="header__right">
+      <p class="clock" aria-hidden="true">
+        <span class="clock__dot"></span>
+        <span data-clock>[00:00]</span>
+        <span>[TIMEZONE_LABEL]</span>
+      </p>
+      <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="menu" aria-label="[OPEN_MENU_LABEL]">
+        <span class="menu-toggle__label" data-menu-label>[MENU_LABEL]</span>
+        <span class="menu-toggle__bars" aria-hidden="true"><i></i><i></i></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     MENU
+     ============================================================ -->
+<div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="[NAVIGATION_LABEL]" aria-hidden="true">
+  <div class="shell menu__inner">
+    <nav class="menu__nav" aria-label="[PRIMARY_NAV_LABEL]">
+      <a class="menu__link" href="#top"><span class="menu__num">01</span><span class="menu__word">[NAV_HOME]</span><span class="menu__arrow" aria-hidden="true">↗</span></a>
+      <a class="menu__link" href="#about"><span class="menu__num">02</span><span class="menu__word">[NAV_ABOUT]</span><span class="menu__arrow" aria-hidden="true">↗</span></a>
+      <a class="menu__link" href="#work"><span class="menu__num">03</span><span class="menu__word">[NAV_WORK]</span><span class="menu__arrow" aria-hidden="true">↗</span></a>
+      <a class="menu__link" href="#services"><span class="menu__num">04</span><span class="menu__word">[NAV_SERVICES]</span><span class="menu__arrow" aria-hidden="true">↗</span></a>
+      <a class="menu__link" href="#contact"><span class="menu__num">05</span><span class="menu__word">[NAV_CONTACT]</span><span class="menu__arrow" aria-hidden="true">↗</span></a>
+    </nav>
+
+    <div class="menu__side">
+      <div>
+        <h3>[EMAIL_LABEL]</h3>
+        <a href="mailto:[YOUR_EMAIL_HERE]">[YOUR_EMAIL_HERE]</a>
+      </div>
+      <div>
+        <h3>[SOCIAL_LABEL]</h3>
+        <a href="#" data-placeholder-link>[SOCIAL_ONE]</a>
+        <a href="#" data-placeholder-link>[SOCIAL_TWO]</a>
+        <a href="#" data-placeholder-link>[SOCIAL_THREE]</a>
+      </div>
+      <div>
+        <h3>[LOCATION_LABEL]</h3>
+        <p>[YOUR_CITY]</p>
+        <span class="mono" data-clock>[00:00]</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN
+     ============================================================ -->
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <div class="shell hero__inner" data-hero-inner>
+      <div class="hero__meta">
+        <p class="mono reveal">[YOUR_TITLE_HERE]</p>
+        <p class="mono reveal" style="--d:.08s">
+          <span>[YOUR_LOCATION]</span>
+          <span><i class="dot"></i>[AVAILABILITY_STATUS]</span>
+        </p>
+      </div>
+
+      <h1 class="hero__title" id="hero-title">
+        <span class="hl"><span style="--i:0">[YOUR NAME]</span></span>
+        <span class="hl hl--indent"><span style="--i:1">[YOUR ROLE]</span></span>
+      </h1>
+
+      <div class="hero__bottom">
+        <p class="hero__lede reveal" style="--d:.35s">[YOUR_SHORT_BIO_HERE]</p>
+
+        <a class="hero__cue reveal" href="#intro" style="--d:.45s">
+          <span class="hero__cue-line" aria-hidden="true"></span>
+          <span class="mono">[SCROLL_LABEL]</span>
+        </a>
+
+        <p class="hero__index mono reveal" style="--d:.5s"><b>01</b> / 06</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <div class="marquee__group">
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_ONE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_TWO]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_THREE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_FOUR]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_FIVE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_SIX]</span>
+      </div>
+      <div class="marquee__group">
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_ONE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_TWO]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_THREE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_FOUR]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_FIVE]</span>
+        <span class="marquee__item"><i></i>[MARQUEE_ITEM_SIX]</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANIFESTO -->
+  <section class="section" id="intro" aria-labelledby="intro-title">
+    <div class="shell">
+      <div class="manifesto">
+        <div class="manifesto__head">
+          <p class="eyebrow mono reveal"><span class="eyebrow__num">02</span><span class="eyebrow__line"></span>[SECTION_LABEL]</p>
+        </div>
+
+        <div class="manifesto__body">
+          <h2 class="statement reveal" id="intro-title" style="--d:.06s">
+            [STATEMENT_ONE] <span class="dim">[STATEMENT_TWO]</span> <em>[STATEMENT_ACCENT]</em>
+          </h2>
+        </div>
+
+        <div class="manifesto__aside">
+          <p class="reveal" style="--d:.1s">[MANIFESTO_PARAGRAPH_ONE]</p>
+
+          <div class="manifesto__facts">
+            <div class="fact reveal" style="--d:.16s">
+              <p class="fact__num">[00]<sup>+</sup></p>
+              <p class="fact__label mono">[STAT_LABEL_ONE]</p>
+            </div>
+            <div class="fact reveal" style="--d:.22s">
+              <p class="fact__num">[00]</p>
+              <p class="fact__label mono">[STAT_LABEL_TWO]</p>
+            </div>
+            <div class="fact reveal" style="--d:.28s">
+              <p class="fact__num">[00]<sup>%</sup></p>
+              <p class="fact__label mono">[STAT_LABEL_THREE]</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section" id="about" aria-labelledby="about-title">
+    <div class="shell">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow mono reveal"><span class="eyebrow__num">03</span><span class="eyebrow__line"></span>[ABOUT_LABEL]</p>
+          <h2 class="section-title reveal" id="about-title" style="--d:.05s">[ABOUT_HEADING]</h2>
+        </div>
+        <p class="section-note reveal" style="--d:.1s">[ABOUT_SECTION_NOTE]</p>
+      </div>
+
+      <div class="about__grid">
+        <figure class="about__portrait reveal-img">
+          <div class="frame frame--portrait">
+            <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+            <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+            <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+            <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+            <span class="frame__tag">[FRAME_TAG]</span>
+            <span class="frame__sweep" aria-hidden="true"></span>
+            <span class="frame__label">
+              <span class="frame__cross" aria-hidden="true"></span>
+              [PORTRAIT_PLACEHOLDER]
+            </span>
+          </div>
+          <figcaption class="frame__caption mono">
+            <span>[CAPTION_LABEL]</span>
+            <span>[YEAR]</span>
+          </figcaption>
+        </figure>
+
+        <div class="about__content">
+          <h3 class="about__heading reveal">[ABOUT_SUBHEADING]</h3>
+
+          <div class="about__copy reveal" style="--d:.08s">
+            <p class="lede">[BIO_PARAGRAPH_ONE]</p>
+            <p>[BIO_PARAGRAPH_TWO]</p>
+            <p>[BIO_PARAGRAPH_THREE]</p>
+          </div>
+
+          <div class="reveal" style="--d:.14s">
+            <p class="mono" style="margin-bottom:1rem;color:var(--bone-3)">[SKILLS_LABEL]</p>
+            <div class="skills" data-skills>
+              <div class="skill">
+                <span class="skill__name">[SKILL_ONE]</span>
+                <span class="skill__val">[00]/100</span>
+                <span class="skill__track"><i class="skill__bar" style="--v:92%"></i></span>
+              </div>
+              <div class="skill">
+                <span class="skill__name">[SKILL_TWO]</span>
+                <span class="skill__val">[00]/100</span>
+                <span class="skill__track"><i class="skill__bar" style="--v:84%"></i></span>
+              </div>
+              <div class="skill">
+                <span class="skill__name">[SKILL_THREE]</span>
+                <span class="skill__val">[00]/100</span>
+                <span class="skill__track"><i class="skill__bar" style="--v:76%"></i></span>
+              </div>
+              <div class="skill">
+                <span class="skill__name">[SKILL_FOUR]</span>
+                <span class="skill__val">[00]/100</span>
+                <span class="skill__track"><i class="skill__bar" style="--v:68%"></i></span>
+              </div>
+              <div class="skill">
+                <span class="skill__name">[SKILL_FIVE]</span>
+                <span class="skill__val">[00]/100</span>
+                <span class="skill__track"><i class="skill__bar" style="--v:60%"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reveal" style="--d:.2s">
+            <p class="mono" style="margin-bottom:1rem;color:var(--bone-3)">[TIMELINE_LABEL]</p>
+            <div class="timeline">
+              <div class="timeline__row">
+                <span class="timeline__year">[YYYY] — [YYYY]</span>
+                <span class="timeline__role">[ROLE_OR_DEGREE_ONE]</span>
+                <span class="timeline__org">[ORGANIZATION_ONE]</span>
+              </div>
+              <div class="timeline__row">
+                <span class="timeline__year">[YYYY] — [YYYY]</span>
+                <span class="timeline__role">[ROLE_OR_DEGREE_TWO]</span>
+                <span class="timeline__org">[ORGANIZATION_TWO]</span>
+              </div>
+              <div class="timeline__row">
+                <span class="timeline__year">[YYYY] — [YYYY]</span>
+                <span class="timeline__role">[ROLE_OR_DEGREE_THREE]</span>
+                <span class="timeline__org">[ORGANIZATION_THREE]</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORK -->
+  <section class="section" id="work" aria-labelledby="work-title">
+    <div class="shell">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow mono reveal"><span class="eyebrow__num">04</span><span class="eyebrow__line"></span>[WORKS_LABEL]</p>
+          <h2 class="section-title reveal" id="work-title" style="--d:.05s">[WORKS_HEADING]</h2>
+        </div>
+        <p class="section-note reveal" style="--d:.1s">[WORKS_SECTION_NOTE]</p>
+      </div>
+
+      <div class="work__grid">
+        <!-- PROJECT 01 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--4-5 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">01 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">01</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+
+        <!-- PROJECT 02 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--3-4 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">02 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">02</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+
+        <!-- PROJECT 03 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--1-1 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">03 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">03</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+
+        <!-- PROJECT 04 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--16-10 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">04 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">04</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+
+        <!-- PROJECT 05 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--21-9 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">05 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">05</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+
+        <!-- PROJECT 06 -->
+        <article class="work">
+          <a class="work__link" href="#" data-placeholder-link>
+            <div class="frame frame--5-7 reveal-img">
+              <span class="frame__corner frame__corner--tl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--tr" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--bl" aria-hidden="true"></span>
+              <span class="frame__corner frame__corner--br" aria-hidden="true"></span>
+              <span class="frame__tag">[FRAME_TAG]</span>
+              <span class="frame__sweep" aria-hidden="true"></span>
+              <span class="work__index">06 / 06</span>
+              <span class="frame__label"><span class="frame__cross" aria-hidden="true"></span>[IMAGE_PLACEHOLDER]</span>
+            </div>
+            <div class="work__meta">
+              <span class="mono work__num">06</span>
+              <h3 class="work__title">[PROJECT_HEADING]</h3>
+              <span class="work__arrow" aria-hidden="true">↗</span>
+              <span class="work__sub mono"><span>[PROJECT_CATEGORY]</span><span>[YEAR]</span></span>
+            </div>
+          </a>
+        </article>
+      </div>
+
+      <div class="work-more">
+        <a class="btn reveal" href="#" data-placeholder-link data-magnetic>
+          <span class="btn__dot" aria-hidden="true"></span>
+          <span>[VIEW_ALL_LABEL]</span>
+          <span class="btn__arrow" aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="section section--tight" id="services" aria-labelledby="services-title">
+    <div class="shell">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow mono reveal"><span class="eyebrow__num">05</span><span class="eyebrow__line"></span>[SERVICES_LABEL]</p>
+          <h2 class="section-title reveal" id="services-title" style="--d:.05s">[SERVICES_HEADING]</h2>
+        </div>
+        <p class="section-note reveal" style="--d:.1s">[SERVICES_SECTION_NOTE]</p>
+      </div>
+
+      <div class="services">
+        <div class="service reveal">
+          <span class="service__num">01</span>
+          <h3 class="service__title">[SERVICE_ONE_TITLE]</h3>
+          <p class="service__desc">[SERVICE_ONE_DESCRIPTION]</p>
+          <div class="service__tags">
+            <span class="tag">[TAG_ONE]</span><span class="tag">[TAG_TWO]</span><span class="tag">[TAG_THREE]</span>
+          </div>
+        </div>
+
+        <div class="service reveal" style="--d:.06s">
+          <span class="service__num">02</span>
+          <h3 class="service__title">[SERVICE_TWO_TITLE]</h3>
+          <p class="service__desc">[SERVICE_TWO_DESCRIPTION]</p>
+          <div class="service__tags">
+            <span class="tag">[TAG_ONE]</span><span class="tag">[TAG_TWO]</span><span class="tag">[TAG_THREE]</span>
+          </div>
+        </div>
+
+        <div class="service reveal" style="--d:.12s">
+          <span class="service__num">03</span>
+          <h3 class="service__title">[SERVICE_THREE_TITLE]</h3>
+          <p class="service__desc">[SERVICE_THREE_DESCRIPTION]</p>
+          <div class="service__tags">
+            <span class="tag">[TAG_ONE]</span><span class="tag">[TAG_TWO]</span><span class="tag">[TAG_THREE]</span>
+          </div>
+        </div>
+
+        <div class="service reveal" style="--d:.18s">
+          <span class="service__num">04</span>
+          <h3 class="service__title">[SERVICE_FOUR_TITLE]</h3>
+          <p class="service__desc">[SERVICE_FOUR_DESCRIPTION]</p>
+          <div class="service__tags">
+            <span class="tag">[TAG_ONE]</span><span class="tag">[TAG_TWO]</span><span class="tag">[TAG_THREE]</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section contact" id="contact" aria-labelledby="contact-title">
+    <div class="shell">
+      <div class="contact__grid">
+        <div>
+          <p class="eyebrow mono reveal"><span class="eyebrow__num">06</span><span class="eyebrow__line"></span>[CONTACT_LABEL]</p>
+          <h2 class="contact__heading reveal" id="contact-title" style="--d:.06s;margin-top:1.25rem">
+            [CONTACT_HEADING]<br /><span>[CONTACT_LINE_TWO]</span>
+          </h2>
+          <p class="contact__lead reveal" style="--d:.12s">[CONTACT_LEAD_PARAGRAPH]</p>
+          <a class="contact__mail reveal" style="--d:.18s" href="mailto:[YOUR_EMAIL_HERE]" data-magnetic>[YOUR_EMAIL_HERE]</a>
+        </div>
+
+        <div class="contact__side">
+          <div class="contact__block reveal" style="--d:.1s">
+            <h3>[SOCIAL_LABEL]</h3>
+            <ul>
+              <li><a href="#" data-placeholder-link>[SOCIAL_ONE]</a></li>
+              <li><a href="#" data-placeholder-link>[SOCIAL_TWO]</a></li>
+              <li><a href="#" data-placeholder-link>[SOCIAL_THREE]</a></li>
+              <li><a href="#" data-placeholder-link>[SOCIAL_FOUR]</a></li>
+            </ul>
+          </div>
+
+          <div class="contact__block reveal" style="--d:.16s">
+            <h3>[LOCATION_LABEL]</h3>
+            <p style="color:var(--bone-2)">[YOUR_CITY]<br />[YOUR_COUNTRY]</p>
+          </div>
+
+          <div class="reveal" style="--d:.22s">
+            <p class="contact__status mono"><i></i>[AVAILABILITY_STATUS]</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div class="shell footer__inner">
+    <div class="footer__brand">
+      <span class="footer__mark" aria-hidden="true">[LN]</span>
+      <span class="footer__name">[YOUR_NAME]</span>
+    </div>
+
+    <div class="footer__meta mono">
+      <span>© <span data-year>2026</span> [YOUR_NAME]</span>
+      <span>[RIGHTS_LABEL]</span>
+      <span class="footer__clock">[LOCAL_TIME] <span data-clock>[00:00]</span></span>
+    </div>
+
+    <a class="to-top" href="#top" data-magnetic>
+      <span aria-hidden="true">↑</span> [BACK_TO_TOP_LABEL]
+    </a>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.27/dist/lenis.min.js" defer></script>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.documentElement;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+  var lenis = null;
+  var menuOpen = false;
+  var lastFocused = null;
+
+  var $ = function (sel, ctx) { return (ctx || document).querySelector(sel); };
+  var $$ = function (sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); };
+
+  /* ---------- year + clock ---------- */
+  $$('[data-year]').forEach(function (el) {
+    el.textContent = String(new Date().getFullYear());
+  });
+
+  var clocks = $$('[data-clock]');
+  function paintClock() {
+    if (!clocks.length) return;
+    var now = new Date();
+    var value = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    clocks.forEach(function (el) { el.textContent = value; });
+  }
+  paintClock();
+  setInterval(paintClock, 30000);
+
+  /* ---------- placeholder links ---------- */
+  $$('[data-placeholder-link]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      if (a.getAttribute('href') === '#') e.preventDefault();
+    });
+  });
+
+  /* ---------- hero intro ---------- */
+  var readyTimer = window.setTimeout(function () {
+    root.classList.add('is-ready');
+  }, reduceMotion.matches ? 0 : 140);
+
+  /* ---------- reveals ---------- */
+  var revealEls = $$('.reveal, .reveal-img, .drop-line, [data-skills]');
+
+  if ('IntersectionObserver' in window && !reduceMotion.matches) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+
+    revealEls.forEach(function (el) { observer.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('is-in'); });
+  }
+
+  /* auto stagger inside groups */
+  $$('[data-stagger]').forEach(function (group) {
+    Array.prototype.forEach.call(group.children, function (child, i) {
+      child.style.setProperty('--d', (i * 0.07) + 's');
+    });
+  });
+
+  /* ---------- header state + hero parallax ---------- */
+  var header = $('#site-header');
+  var heroInner = $('[data-hero-inner]');
+  var ticking = false;
+
+  function onScrollFrame() {
+    var y = window.scrollY || window.pageYOffset || 0;
+
+    if (header) header.classList.toggle('is-scrolled', y > 24);
+
+    if (heroInner && !reduceMotion.matches) {
+      var limit = window.innerHeight || 800;
+      var p = Math.min(y / limit, 1);
+      heroInner.style.transform = 'translate3d(0,' + (p * 54).toFixed(2) + 'px,0)';
+      heroInner.style.opacity = String(1 - Math.min(p * 0.8, 0.55));
+    }
+
+    ticking = false;
+  }
+
+  function requestScrollFrame() {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(onScrollFrame);
+    }
+  }
+
+  window.addEventListener('scroll', requestScrollFrame, { passive: true });
+  window.addEventListener('resize', requestScrollFrame);
+  onScrollFrame();
+
+  /* ---------- magnetic elements ---------- */
+  if (finePointer.matches && !reduceMotion.matches) {
+    $$('[data-magnetic]').forEach(function (el) {
+      var strength = 8;
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        var x = ((e.clientX - r.left) / r.width - 0.5) * strength * 2;
+        var y = ((e.clientY - r.top) / r.height - 0.5) * strength;
+        el.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
+      });
+      el.addEventListener('pointerleave', function () {
+        el.style.transform = '';
+      });
+    });
+  }
+
+  /* ---------- custom cursor ---------- */
+  if (finePointer.matches && !reduceMotion.matches) {
+    root.classList.add('has-cursor');
+
+    var dot = $('.cursor');
+    var ring = $('.cursor-ring');
+    var mx = window.innerWidth / 2;
+    var my = window.innerHeight / 2;
+    var rx = mx;
+    var ry = my;
+
+    window.addEventListener('pointermove', function (e) {
+      mx = e.clientX;
+      my = e.clientY;
+      if (dot) dot.style.transform = 'translate3d(' + mx + 'px,' + my + 'px,0)';
+    }, { passive: true });
+
+    (function loop() {
+      rx += (mx - rx) * 0.16;
+      ry += (my - ry) * 0.16;
+      if (ring) ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0)';
+      window.requestAnimationFrame(loop);
+    })();
+
+    var cursorTargets = 'a, button, [data-cursor]';
+    document.addEventListener('pointerover', function (e) {
+      if (e.target.closest && e.target.closest(cursorTargets)) ring && ring.classList.add('is-active');
+    });
+    document.addEventListener('pointerout', function (e) {
+      if (e.target.closest && e.target.closest(cursorTargets)) ring && ring.classList.remove('is-active');
+    });
+    document.addEventListener('mouseleave', function () {
+      if (dot) dot.style.opacity = '0';
+      if (ring) ring.style.opacity = '0';
+    });
+    document.addEventListener('mouseenter', function () {
+      if (dot) dot.style.opacity = '';
+      if (ring) ring.style.opacity = '';
+    });
+  }
+
+  /* ---------- menu ---------- */
+  var toggle = $('[data-menu-toggle]');
+  var menu = $('#menu');
+  var toggleLabel = $('[data-menu-label]');
+
+  function setMenu(open) {
+    if (!menu || !toggle) return;
+
+    menuOpen = open;
+    menu.classList.toggle('is-open', open);
+    menu.setAttribute('aria-hidden', String(!open));
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '[CLOSE_MENU_LABEL]' : '[OPEN_MENU_LABEL]');
+    if (toggleLabel) toggleLabel.textContent = open ? '[CLOSE_LABEL]' : '[MENU_LABEL]';
+    root.classList.toggle('is-locked', open);
+
+    if (lenis) {
+      if (open) lenis.stop();
+      else lenis.start();
+    }
+
+    if (open) {
+      lastFocused = document.activeElement;
+      window.setTimeout(function () {
+        var first = $('.menu__link', menu);
+        if (first) first.focus({ preventScroll: true });
+      }, reduceMotion.matches ? 0 : 420);
+    } else if (lastFocused && typeof lastFocused.focus === 'function') {
+      lastFocused.focus({ preventScroll: true });
+    }
+  }
+
+  if (toggle) {
+    toggle.addEventListener('click', function () { setMenu(!menuOpen); });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!menuOpen) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setMenu(false);
+      return;
+    }
+
+    if (e.key === 'Tab' && menu) {
+      var focusables = $$('a[href], button:not([disabled])', menu).filter(function (el) {
+        return el.offsetParent !== null;
+      });
+      if (!focusables.length) return;
+
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
+  /* ---------- smooth anchors ---------- */
+  $$('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var hash = a.getAttribute('href');
+      if (!hash || hash === '#') return;
+
+      var target = document.getElementById(hash.slice(1));
+      if (!target) return;
+
+      e.preventDefault();
+
+      if (menuOpen) setMenu(false);
+
+      if (lenis) {
+        lenis.scrollTo(target, { duration: 1.25 });
+      } else if (!reduceMotion.matches) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
+
+      if (history.replaceState) history.replaceState(null, '', hash);
+    });
+  });
+
+  /* ---------- Lenis ---------- */
+  function initLenis() {
+    if (!window.Lenis || reduceMotion.matches) return;
+
+    lenis = new window.Lenis({
+      duration: 1.15,
+      easing: function (t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); },
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.5,
+      syncTouch: false
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      window.requestAnimationFrame(raf);
+    }
+    window.requestAnimationFrame(raf);
+  }
+
+  window.addEventListener('load', function () {
+    initLenis();
+  });
+
+  /* ---------- reduced motion changes ---------- */
+  function handleMotionChange() {
+    if (reduceMotion.matches) {
+      root.classList.remove('has-cursor');
+      if (lenis) { lenis.destroy(); lenis = null; }
+      if (heroInner) {
+        heroInner.style.transform = '';
+        heroInner.style.opacity = '';
+      }
+      $$('.reveal, .reveal-img, .drop-line, [data-skills]').forEach(function (el) {
+        el.classList.add('is-in');
+      });
+    }
+  }
+  if (reduceMotion.addEventListener) {
+    reduceMotion.addEventListener('change', handleMotionChange);
+  } else if (reduceMotion.addListener) {
+    reduceMotion.addListener(handleMotionChange);
+  }
+
+  /* ---------- cleanup ---------- */
+  window.addEventListener('pagehide', function () {
+    window.clearTimeout(readyTimer);
+    if (lenis) { lenis.destroy(); lenis = null; }
+  });
+})();
+</script>
+</body>
+</html>
