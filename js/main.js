@@ -49,8 +49,7 @@
 
     function stepPreloader(now) {
       const elapsed = now - startTime;
-      // Synchronise with real readiness; cap max wait at 1400ms so it never stalls
-      const forceFinish = elapsed > 1400;
+      const forceFinish = elapsed > 1300;
       const target = ready || forceFinish ? 100 : 88;
       const speed = ready || forceFinish ? 0.16 : 0.08;
       progress += (target - progress) * speed;
@@ -78,7 +77,6 @@
   /* ============================================================
      1. SINGLE FRAME DRIVER + LENIS SMOOTH SCROLL
      ============================================================ */
-
   let lenis = null;
   let lenisPausedByUi = false;
   let masterRafId = 0;
@@ -168,14 +166,6 @@
     el.scrollIntoView({ behavior: motionQuery.matches ? 'auto' : 'smooth', block: 'start' });
   }
 
-  function smoothScrollTop() {
-    if (lenis) {
-      lenis.scrollTo(0, { duration: 1.0 });
-      return;
-    }
-    window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
-  }
-
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       stopMasterLoop();
@@ -188,7 +178,7 @@
   });
 
   /* ============================================================
-     2. AMBIENT BLUE AURORA & BOKEH CANVAS
+     2. DYNAMIC BLUE RIBBONS, STARFIELD & INTERACTIVE CURSOR GLOW
      ============================================================ */
   const canvas = document.getElementById('ambient-canvas');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -197,21 +187,34 @@
   let dpr = 1;
   let globalScroll = 0;
 
-  const AURORA_SCALE = 0.4;
+  let pointerX = 0.5;
+  let pointerY = 0.4;
+  let targetPointerX = 0.5;
+  let targetPointerY = 0.4;
+
+  if (finePointerQuery.matches && !motionQuery.matches) {
+    window.addEventListener('pointermove', (e) => {
+      targetPointerX = e.clientX / Math.max(1, window.innerWidth);
+      targetPointerY = e.clientY / Math.max(1, window.innerHeight);
+    }, { passive: true });
+  }
+
+  const AURORA_SCALE = 0.45;
   const auroraCanvas = document.createElement('canvas');
   const auroraCtx = auroraCanvas.getContext('2d');
   let aw = 0;
   let ah = 0;
   const bokehSprites = new Map();
 
-  const bokehParticles = Array.from({ length: 22 }, (_, i) => ({
-    x: ((i * 37.3) % 100) / 100,
-    y: ((i * 23.7) % 72) / 100,
-    r: 1.4 + (i % 5) * 0.85,
-    vx: (i % 2 === 0 ? 1 : -1) * (0.000016 + (i % 4) * 0.000007),
-    vy: -0.00001 - (i % 3) * 0.000005,
-    alpha: 0.12 + (i % 5) * 0.05,
-    phase: i * 0.7
+  // Crisp twinkling starfield + drifting light motes
+  const stars = Array.from({ length: 42 }, (_, i) => ({
+    x: ((i * 37.7 + 13) % 100) / 100,
+    y: ((i * 29.3 + 7) % 100) / 100,
+    r: 1.1 + (i % 4) * 0.65,
+    vx: (i % 2 === 0 ? 1 : -1) * (0.00012 + (i % 5) * 0.00004),
+    vy: -0.00008 - (i % 3) * 0.00005,
+    alpha: 0.25 + (i % 5) * 0.11,
+    phase: i * 0.85
   }));
 
   function clamp(val, min, max) {
@@ -249,7 +252,7 @@
     let sprite = bokehSprites.get(key);
     if (sprite) return sprite;
 
-    const rad = radius * 3.2;
+    const rad = radius * 3.4;
     const size = Math.ceil(rad * 2) + 2;
     sprite = document.createElement('canvas');
     sprite.width = Math.ceil(size * dpr);
@@ -258,9 +261,9 @@
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const center = size / 2;
     const grad = sctx.createRadialGradient(center, center, 0, center, center, rad);
-    grad.addColorStop(0, 'rgba(170, 212, 255, 1)');
-    grad.addColorStop(0.5, 'rgba(48, 128, 255, 0.35)');
-    grad.addColorStop(1, 'rgba(10, 30, 80, 0)');
+    grad.addColorStop(0, 'rgba(215, 236, 255, 1)');
+    grad.addColorStop(0.45, 'rgba(58, 138, 255, 0.48)');
+    grad.addColorStop(1, 'rgba(8, 24, 68, 0)');
     sctx.fillStyle = grad;
     sctx.beginPath();
     sctx.arc(center, center, rad, 0, Math.PI * 2);
@@ -270,72 +273,87 @@
   }
 
   function renderAmbient(timeMs, animate) {
-    const t = timeMs * 0.00045;
+    const t = timeMs * 0.0008;
     const dt = animate ? (lastAmbientTime ? clamp((timeMs - lastAmbientTime) / 16.67, 0.2, 3) : 1) : 0;
 
+    pointerX += (targetPointerX - pointerX) * 0.06;
+    pointerY += (targetPointerY - pointerY) * 0.06;
+
+    // Deep midnight void
     ctx.fillStyle = '#020306';
     ctx.fillRect(0, 0, cw, ch);
 
-    for (let i = 0; i < bokehParticles.length; i++) {
-      const p = bokehParticles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      if (p.x < -0.05) p.x = 1.05;
-      if (p.x > 1.05) p.x = -0.05;
-      if (p.y < -0.05) p.y = 0.76;
-
-      const px = p.x * cw;
-      const py = p.y * ch;
-      const pulse = 0.7 + 0.3 * Math.sin(t * 2.2 + p.phase);
-      const sprite = bokehSprite(p.r);
-      const drawSize = sprite.width / dpr;
-      ctx.globalAlpha = p.alpha * pulse;
-      ctx.drawImage(sprite, px - drawSize / 2, py - drawSize / 2, drawSize, drawSize);
-    }
-    ctx.globalAlpha = 1;
-
-    const scrollShift = globalScroll * Math.PI * 2.0;
-    const baseHorizon = ah * (0.56 + 0.04 * Math.sin(scrollShift * 0.5));
-
+    // Flowing electric-blue silk ribbons on offscreen blurred canvas
+    const scrollPhase = globalScroll * Math.PI * 3.0;
     auroraCtx.clearRect(0, 0, aw, ah);
     const ac = auroraCtx;
     ac.save();
-    ac.filter = `blur(${(42 * AURORA_SCALE).toFixed(2)}px)`;
+    ac.filter = `blur(${(34 * AURORA_SCALE).toFixed(2)}px)`;
 
-    const g1 = ac.createLinearGradient(0, baseHorizon - ah * 0.14, 0, ah);
-    g1.addColorStop(0, 'rgba(8, 36, 108, 0.10)');
-    g1.addColorStop(0.45, 'rgba(14, 64, 182, 0.48)');
-    g1.addColorStop(1, 'rgba(7, 28, 86, 0.78)');
-    ac.fillStyle = g1;
+    // Ribbon 1: Sweeping diagonal cobalt wave
+    const g1 = ac.createLinearGradient(0, 0, aw, ah);
+    g1.addColorStop(0, 'rgba(12, 48, 140, 0.12)');
+    g1.addColorStop(0.5, 'rgba(32, 108, 248, 0.52)');
+    g1.addColorStop(1, 'rgba(8, 32, 98, 0.16)');
+    ac.strokeStyle = g1;
+    ac.lineWidth = Math.max(18, ah * 0.14);
     ac.beginPath();
-    ac.moveTo(-80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
-    for (let x = -80 * AURORA_SCALE; x <= aw + 80 * AURORA_SCALE; x += 64 * AURORA_SCALE) {
-      const nx = x / aw;
-      const wave =
-        Math.sin(nx * 3.4 + t + scrollShift * 0.45) * (ah * 0.085) +
-        Math.cos(nx * 2.1 - t * 0.7 + scrollShift * 0.2) * (ah * 0.05);
-      ac.lineTo(x, baseHorizon + wave);
-    }
-    ac.lineTo(aw + 80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
-    ac.closePath();
-    ac.fill();
-
-    const g2 = ac.createRadialGradient(
-      aw * (0.28 + 0.16 * Math.sin(t * 0.6 + scrollShift * 0.35)),
-      ah * 0.84,
-      aw * 0.04,
-      aw * 0.34,
-      ah * 0.86,
-      aw * 0.58
+    const y1Start = ah * (0.74 + 0.08 * Math.sin(t * 0.6 + scrollPhase * 0.4));
+    const y1End = ah * (0.28 + 0.08 * Math.cos(t * 0.5 - scrollPhase * 0.3));
+    ac.moveTo(-aw * 0.1, y1Start);
+    ac.bezierCurveTo(
+      aw * 0.3, ah * (0.42 + 0.12 * Math.sin(t * 0.7)),
+      aw * 0.68, ah * (0.78 + 0.1 * Math.cos(t * 0.55)),
+      aw * 1.1, y1End
     );
-    g2.addColorStop(0, 'rgba(37, 117, 245, 0.44)');
-    g2.addColorStop(0.55, 'rgba(16, 68, 184, 0.22)');
-    g2.addColorStop(1, 'rgba(5, 18, 52, 0)');
-    ac.fillStyle = g2;
-    ac.fillRect(0, ah * 0.32, aw, ah * 0.72);
+    ac.stroke();
+
+    // Ribbon 2: Secondary luminous cerulean arc
+    const g2 = ac.createLinearGradient(aw, 0, 0, ah);
+    g2.addColorStop(0, 'rgba(72, 152, 255, 0.42)');
+    g2.addColorStop(0.5, 'rgba(22, 82, 214, 0.34)');
+    g2.addColorStop(1, 'rgba(6, 20, 62, 0.08)');
+    ac.strokeStyle = g2;
+    ac.lineWidth = Math.max(12, ah * 0.09);
+    ac.beginPath();
+    ac.moveTo(-aw * 0.08, ah * (0.26 + 0.09 * Math.cos(t * 0.5)));
+    ac.bezierCurveTo(
+      aw * 0.36, ah * (0.72 + 0.1 * Math.sin(t * 0.6 + scrollPhase * 0.25)),
+      aw * 0.72, ah * (0.34 + 0.1 * Math.cos(t * 0.65)),
+      aw * 1.08, ah * (0.76 + 0.07 * Math.sin(t * 0.45))
+    );
+    ac.stroke();
+
+    // Soft interactive pointer halo
+    const pxA = pointerX * aw;
+    const pyA = pointerY * ah;
+    const pg = ac.createRadialGradient(pxA, pyA, 0, pxA, pyA, aw * 0.34);
+    pg.addColorStop(0, 'rgba(56, 138, 255, 0.28)');
+    pg.addColorStop(1, 'rgba(10, 30, 80, 0)');
+    ac.fillStyle = pg;
+    ac.fillRect(0, 0, aw, ah);
 
     ac.restore();
     ctx.drawImage(auroraCanvas, 0, 0, cw, ch);
+
+    // Crisp twinkling starfield & drifting motes
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      if (s.x < -0.02) s.x = 1.02;
+      if (s.x > 1.02) s.x = -0.02;
+      if (s.y < -0.02) s.y = 1.02;
+
+      const sx = s.x * cw;
+      const sy = s.y * ch;
+      const pulse = 0.55 + 0.45 * Math.sin(t * 2.4 + s.phase);
+      const sprite = bokehSprite(s.r);
+      const drawSize = sprite.width / dpr;
+      ctx.globalAlpha = s.alpha * pulse;
+      ctx.drawImage(sprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+    }
+    ctx.globalAlpha = 1;
   }
 
   resizeCanvas();
@@ -364,11 +382,11 @@
   }, { passive: true });
 
   /* ============================================================
-     3. RESTRAINED ORBITAL PARALLAX + ACTIVE NAV + DIRECTIONAL REVEALS
+     3. ORBITAL PARALLAX + ACTIVE NAV + DIRECTIONAL REVEALS
      ============================================================ */
   const heroOrbitSvg = document.querySelector('.hero-orbit-svg');
   const navLinks = Array.from(document.querySelectorAll('.nav-links .nav-link'));
-  const trackedSections = ['about', 'works', 'kuro', 'videos', 'contact']
+  const trackedSections = ['works', 'kuro', 'videos', 'advertising', 'ai', 'contact']
     .map((id) => document.getElementById(id))
     .filter(Boolean);
 
@@ -379,11 +397,11 @@
     ambientDirty = true;
 
     if (heroOrbitSvg && !motionQuery.matches && sy < window.innerHeight * 1.2) {
-      const shiftY = sy * 0.14;
+      const shiftY = sy * 0.16;
       heroOrbitSvg.style.transform = `translate3d(0, ${shiftY.toFixed(1)}px, 0)`;
     }
 
-    const mid = window.innerHeight * 0.38;
+    const mid = window.innerHeight * 0.42;
     let activeId = '';
     for (let i = 0; i < trackedSections.length; i++) {
       const rect = trackedSections[i].getBoundingClientRect();
@@ -398,7 +416,6 @@
     if (!lenis) updateActiveNav();
   }, { passive: true });
 
-  // Unified IntersectionObserver for directional reveals
   const revealObserver = ('IntersectionObserver' in window && !motionQuery.matches)
     ? new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -407,7 +424,7 @@
             revealObserver.unobserve(entry.target);
           }
         });
-      }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' })
+      }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' })
     : null;
 
   function observeReveals(root = document) {
@@ -427,33 +444,7 @@
   observeReveals(document);
 
   /* ============================================================
-     4. INTERACTIVE FOCUS SWITCHER (ABOUT)
-     ============================================================ */
-  const FOCUS_COPY = {
-    web: 'Designing and shipping responsive, custom websites for brands and local businesses — from concept to live domain.',
-    ai: 'Experimenting with AI tools, automated workflows, and practical integrations to make everyday business tasks faster.',
-    creative: 'Editing vertical reels, landscape cuts, and visual brand presentations that give projects a clear identity.',
-    ads: 'Setting up and optimising paid advertising campaigns — audience targeting, creative selection, and performance monitoring.'
-  };
-
-  const focusTabs = Array.from(document.querySelectorAll('.focus-tab'));
-  const focusDetail = document.getElementById('focusDetail');
-  focusTabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const key = tab.dataset.focus;
-      focusTabs.forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle('is-active', active);
-        t.setAttribute('aria-selected', String(active));
-      });
-      if (focusDetail && FOCUS_COPY[key]) {
-        focusDetail.textContent = FOCUS_COPY[key];
-      }
-    });
-  });
-
-  /* ============================================================
-     5. VIDEO & CREATIVE SHOWCASE (RENDER + FILTER + MODAL)
+     4. VIDEO & CREATIVE SHOWCASE (RENDER + FILTER + MODAL)
      ============================================================ */
   const videoGrid = document.getElementById('videoGrid');
   const videoFilterBtns = Array.from(document.querySelectorAll('[data-video-filter]'));
@@ -466,7 +457,7 @@
 
     filtered.forEach((item, idx) => {
       const card = document.createElement('article');
-      card.className = `video-card reveal-item ${item.format === 'landscape' ? 'is-landscape' : 'is-reel'}`;
+      card.className = 'video-card reveal-item';
       card.dataset.reveal = 'up';
       card.dataset.stagger = String(idx % 4);
       card.tabIndex = 0;
@@ -481,12 +472,11 @@
       card.innerHTML = `
         <div class="video-thumb">
           ${mediaHtml}
-          <span class="video-play-pill">${hasVideo ? 'Play Video' : 'Preview Slot'}</span>
+          <span class="video-center-play" aria-hidden="true">&#9654;</span>
         </div>
         <div class="video-card-body">
           <p class="video-format">${item.formatLabel}</p>
           <h3 class="video-title">${item.title}</h3>
-          <p class="video-caption">${item.caption}</p>
         </div>
       `;
 
@@ -525,7 +515,7 @@
   });
 
   /* ============================================================
-     6. UNIFIED PROJECT & VIDEO MODAL
+     5. UNIFIED PROJECT & VIDEO MODAL
      ============================================================ */
   const modal = document.getElementById('detailModal');
   const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -596,7 +586,7 @@
       link.href = project.liveUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.className = 'btn-solid';
+      link.className = 'btn-white';
       link.textContent = project.liveLabel || 'Visit Live Project';
       modalActions.appendChild(link);
     }
@@ -609,10 +599,10 @@
     modalTitle.textContent = videoItem.title;
     modalDesc.textContent = videoItem.caption;
     modalList.innerHTML = '';
-    modalEditable.hidden = true;
     modalActions.innerHTML = '';
 
     if (videoItem.videoSrc) {
+      modalEditable.hidden = true;
       modalImg.hidden = true;
       modalVideo.hidden = false;
       modalVideo.src = videoItem.videoSrc;
@@ -623,7 +613,6 @@
       modalImg.hidden = false;
       modalImg.src = videoItem.poster;
       modalImg.alt = videoItem.title;
-
       modalEditable.hidden = false;
       modalEditable.innerHTML = '<strong>Video Slot Ready:</strong> Add your <code>.mp4</code> path in <code>js/data.js</code> under <code>PORTFOLIO_CONFIG.videos</code> to enable playback here.';
     }
@@ -641,7 +630,7 @@
   });
 
   /* ============================================================
-     7. MOBILE DRAWER, TOAST, CONFIG LINKS & BACK TO TOP
+     6. MOBILE DRAWER, TOAST & CONFIG LINKS
      ============================================================ */
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const mobileDrawer = document.getElementById('mobileDrawer');
@@ -704,6 +693,4 @@
       showToast(`${link.dataset.label} placeholder — configure in js/data.js`);
     });
   });
-
-  document.getElementById('backTopBtn').addEventListener('click', smoothScrollTop);
 })();
