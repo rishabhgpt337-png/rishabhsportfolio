@@ -4,10 +4,80 @@
   const CONFIG = window.PORTFOLIO_CONFIG || {};
 
   /* ============================================================
-     1. SINGLE FRAME DRIVER + LENIS SMOOTH SCROLL
+     0. CUSTOM CINEMATIC PRELOADER (INITIAL ENTRY ONLY)
      ============================================================ */
+  const preloader = document.getElementById('preloader');
+  const preloaderFill = document.getElementById('preloaderFill');
+  const preloaderPercent = document.getElementById('preloaderPercent');
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+  function revealHeroImmediately() {
+    document.body.classList.add('hero-ready');
+    if (preloader) preloader.classList.add('is-done');
+  }
+
+  function runPreloader() {
+    if (!preloader || motionQuery.matches) {
+      revealHeroImmediately();
+      return;
+    }
+
+    let seen = false;
+    try {
+      seen = sessionStorage.getItem('rishabh_preloader_seen') === '1';
+    } catch (e) {
+      seen = false;
+    }
+
+    if (seen) {
+      revealHeroImmediately();
+      return;
+    }
+
+    let progress = 0;
+    let ready = document.readyState === 'complete';
+    const startTime = performance.now();
+
+    const markReady = () => { ready = true; };
+    if (!ready) {
+      window.addEventListener('load', markReady, { once: true });
+    }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(markReady).catch(markReady);
+    }
+
+    function stepPreloader(now) {
+      const elapsed = now - startTime;
+      // Synchronise with real readiness; cap max wait at 1400ms so it never stalls
+      const forceFinish = elapsed > 1400;
+      const target = ready || forceFinish ? 100 : 88;
+      const speed = ready || forceFinish ? 0.16 : 0.08;
+      progress += (target - progress) * speed;
+
+      if (target === 100 && progress > 99.2) progress = 100;
+      const pct = Math.round(progress);
+      if (preloaderFill) preloaderFill.style.width = `${pct}%`;
+      if (preloaderPercent) preloaderPercent.textContent = `${pct}%`;
+
+      if (progress >= 100) {
+        try { sessionStorage.setItem('rishabh_preloader_seen', '1'); } catch (e) {}
+        preloader.classList.add('is-exiting');
+        document.body.classList.add('hero-ready');
+        setTimeout(() => preloader.classList.add('is-done'), 750);
+        return;
+      }
+      requestAnimationFrame(stepPreloader);
+    }
+
+    requestAnimationFrame(stepPreloader);
+  }
+
+  runPreloader();
+
+  /* ============================================================
+     1. SINGLE FRAME DRIVER + LENIS SMOOTH SCROLL
+     ============================================================ */
 
   let lenis = null;
   let lenisPausedByUi = false;
@@ -294,18 +364,10 @@
   }, { passive: true });
 
   /* ============================================================
-     3. HERO CHARACTER PARALLAX + ACTIVE NAV + SCROLL REVEALS
+     3. RESTRAINED ORBITAL PARALLAX + ACTIVE NAV + DIRECTIONAL REVEALS
      ============================================================ */
-  const heroCharacterSlot = document.getElementById('heroCharacterSlot');
-  if (heroCharacterSlot && finePointerQuery.matches && !motionQuery.matches) {
-    window.addEventListener('pointermove', (e) => {
-      const nx = (e.clientX / window.innerWidth - 0.5) * 2;
-      const ny = (e.clientY / window.innerHeight - 0.5) * 2;
-      heroCharacterSlot.style.transform = `translate3d(calc(-50% + ${(nx * 10).toFixed(1)}px), ${(ny * 6).toFixed(1)}px, 0)`;
-    }, { passive: true });
-  }
-
-  const navLinks = Array.from(document.querySelectorAll('.nav-pill .nav-link'));
+  const heroOrbitSvg = document.querySelector('.hero-orbit-svg');
+  const navLinks = Array.from(document.querySelectorAll('.nav-links .nav-link'));
   const trackedSections = ['about', 'works', 'kuro', 'videos', 'contact']
     .map((id) => document.getElementById(id))
     .filter(Boolean);
@@ -315,6 +377,11 @@
     const sy = lenis ? lenis.animatedScroll : window.scrollY;
     globalScroll = clamp(sy / maxScroll, 0, 1);
     ambientDirty = true;
+
+    if (heroOrbitSvg && !motionQuery.matches && sy < window.innerHeight * 1.2) {
+      const shiftY = sy * 0.14;
+      heroOrbitSvg.style.transform = `translate3d(0, ${shiftY.toFixed(1)}px, 0)`;
+    }
 
     const mid = window.innerHeight * 0.38;
     let activeId = '';
@@ -331,21 +398,33 @@
     if (!lenis) updateActiveNav();
   }, { passive: true });
 
-  // IntersectionObserver for section reveals
-  const revealEls = Array.from(document.querySelectorAll('.reveal-item'));
-  if ('IntersectionObserver' in window && !motionQuery.matches) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.14, rootMargin: '0px 0px -40px 0px' });
-    revealEls.forEach((el) => io.observe(el));
-  } else {
-    revealEls.forEach((el) => el.classList.add('is-visible'));
+  // Unified IntersectionObserver for directional reveals
+  const revealObserver = ('IntersectionObserver' in window && !motionQuery.matches)
+    ? new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' })
+    : null;
+
+  function observeReveals(root = document) {
+    const items = Array.from(root.querySelectorAll('.reveal-item'));
+    items.forEach((el) => {
+      if (el.dataset.stagger) {
+        el.style.setProperty('--stagger', el.dataset.stagger);
+      }
+      if (revealObserver) {
+        revealObserver.observe(el);
+      } else {
+        el.classList.add('is-visible');
+      }
+    });
   }
+
+  observeReveals(document);
 
   /* ============================================================
      4. INTERACTIVE FOCUS SWITCHER (ABOUT)
@@ -385,9 +464,11 @@
     videoGrid.innerHTML = '';
     const filtered = filter === 'all' ? videosData : videosData.filter((v) => v.format === filter);
 
-    filtered.forEach((item) => {
+    filtered.forEach((item, idx) => {
       const card = document.createElement('article');
-      card.className = `video-card ${item.format === 'landscape' ? 'is-landscape' : 'is-reel'}`;
+      card.className = `video-card reveal-item ${item.format === 'landscape' ? 'is-landscape' : 'is-reel'}`;
+      card.dataset.reveal = 'up';
+      card.dataset.stagger = String(idx % 4);
       card.tabIndex = 0;
       card.setAttribute('role', 'button');
       card.setAttribute('aria-label', `Preview ${item.title}`);
@@ -431,6 +512,7 @@
 
       videoGrid.appendChild(card);
     });
+    observeReveals(videoGrid);
   }
 
   renderVideos('all');

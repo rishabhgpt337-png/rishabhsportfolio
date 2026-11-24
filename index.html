@@ -16,24 +16,39 @@
   <link rel="stylesheet" href="css/lenis.css" />
 </head>
 <body>
+  <!-- Custom Cinematic Preloader (initial entry only) -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="preloader-inner">
+      <p class="preloader-brand">RISHABH&rsquo;S PORTFOLIO</p>
+      <div class="preloader-meter">
+        <div class="preloader-track">
+          <div class="preloader-fill" id="preloaderFill"></div>
+        </div>
+        <span class="preloader-percent" id="preloaderPercent">0%</span>
+      </div>
+    </div>
+  </div>
+
   <canvas id="ambient-canvas" aria-hidden="true"></canvas>
   <div id="grain-overlay" aria-hidden="true"></div>
-  <div class="top-vignette" aria-hidden="true"></div>
 
-  <header class="chrome-header">
-    <a href="#hero" class="brand-mark" aria-label="Rishabh Gupta, scroll to top">
-      Rishabh Gupta
-    </a>
+  <header class="chrome-header" id="siteHeader">
+    <div class="header-left">
+      <a href="#hero" class="brand-mark" aria-label="Rishabh Gupta, scroll to top">
+        Rishabh Gupta
+      </a>
+      <span class="header-line" aria-hidden="true"></span>
+    </div>
 
     <div class="nav-cluster">
-      <nav class="nav-pill" aria-label="Primary navigation">
+      <nav class="nav-links" aria-label="Primary navigation">
         <a href="#about" class="nav-link" data-section="about">About</a>
         <a href="#works" class="nav-link" data-section="works">Work</a>
         <a href="#kuro" class="nav-link" data-section="kuro">KURO</a>
-        <a href="#videos" class="nav-link" data-section="videos">Video</a>
+        <a href="#videos" class="nav-link" data-section="videos">Videos</a>
         <a href="#contact" class="nav-link" data-section="contact">Contact</a>
+        <span class="nav-dot" aria-hidden="true"></span>
       </nav>
-      <span class="location-note">Mumbai, India</span>
       <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <line x1="4" y1="7" x2="20" y2="7"></line>
@@ -49,7 +64,7 @@
     <a href="#about" class="nav-link">About</a>
     <a href="#works" class="nav-link">Work</a>
     <a href="#kuro" class="nav-link">KURO</a>
-    <a href="#videos" class="nav-link">Video</a>
+    <a href="#videos" class="nav-link">Videos</a>
     <a href="#advertising" class="nav-link">Advertising</a>
     <a href="#ai" class="nav-link">AI &amp; Automation</a>
     <a href="#contact" class="nav-link">Contact</a>
@@ -57,43 +72,52 @@
 
   <main>
     <!-- ============================================================
-         HERO — MONUMENT NAME + INTEGRATED 2D CHARACTER SLOT
+         HERO — TYPOGRAPHY-FIRST + ORBITAL ATMOSPHERE
          ============================================================ -->
-    <section id="hero" class="hero-section" aria-label="Introduction">
-      <div class="container hero-stage" id="heroStage">
-        <!-- Integrated 2D Character Layer (head & shoulders behind/with typography)
-             To use your supplied 2D character illustration, save it as assets/rishabh-character.png
-             and set data-custom-character="assets/rishabh-character.png" on #heroCharacterSlot. -->
-        <div class="hero-character-wrap" id="heroCharacterSlot" aria-hidden="true">
-          <div class="character-figure">
-            <svg class="character-svg" viewBox="0 0 360 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Head & shoulders silhouette integrated into deep blue atmosphere -->
-              <path class="char-shoulders" d="M48 400C54 328 104 286 180 286C256 286 306 328 312 400H48Z" fill="#0b1938" />
-              <path d="M150 250H210V296C210 310 196 320 180 320C164 320 150 310 150 296V250Z" fill="#0f234d" />
-              <ellipse cx="180" cy="176" rx="64" ry="78" fill="#132b5e" />
-              <!-- Subtle animated hair strands swaying right-to-left -->
-              <g class="char-hair-sway">
-                <path d="M114 164C112 108 144 74 186 74C228 74 252 106 248 158C236 126 210 112 178 116C146 120 124 138 114 164Z" fill="#1c3f87" />
-                <path class="hair-strand-1" d="M220 84C192 78 158 88 130 114C148 92 182 82 216 90" stroke="#5ca3ff" stroke-width="2.5" stroke-linecap="round" opacity="0.55" />
-                <path class="hair-strand-2" d="M236 106C204 96 164 102 126 132C156 110 198 104 232 114" stroke="#8ec1ff" stroke-width="2" stroke-linecap="round" opacity="0.4" />
-              </g>
-            </svg>
-          </div>
-        </div>
+    <section id="hero" class="hero-section" aria-label="Rishabh's Portfolio">
+      <div class="hero-orbit-layer" id="heroOrbitLayer" aria-hidden="true">
+        <svg class="hero-orbit-svg" viewBox="0 0 1440 760" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="orbitGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#3b88ff" stop-opacity="0.06" />
+              <stop offset="48%" stop-color="#8ec1ff" stop-opacity="0.52" />
+              <stop offset="100%" stop-color="#3b88ff" stop-opacity="0.04" />
+            </linearGradient>
+          </defs>
+          <ellipse cx="720" cy="390" rx="540" ry="138" transform="rotate(-17 720 390)" stroke="url(#orbitGrad)" stroke-width="1" />
+          <ellipse cx="720" cy="400" rx="690" ry="190" transform="rotate(-17 720 400)" stroke="url(#orbitGrad)" stroke-width="0.7" opacity="0.45" />
+          <g class="star-glint glint-1">
+            <path d="M1076 286L1079 296L1089 299L1079 302L1076 312L1073 302L1063 299L1073 296Z" fill="#dbeaff" />
+          </g>
+          <g class="star-glint glint-2">
+            <path d="M770 164L772 171L779 173L772 175L770 182L768 175L761 173L768 171Z" fill="#cfe4ff" opacity="0.8" />
+          </g>
+          <circle cx="290" cy="210" r="1.4" fill="#8ec1ff" opacity="0.55" />
+          <circle cx="1220" cy="180" r="1.5" fill="#cfe4ff" opacity="0.5" />
+          <circle cx="1140" cy="520" r="1.2" fill="#8ec1ff" opacity="0.45" />
+          <circle cx="230" cy="560" r="1.3" fill="#8ec1ff" opacity="0.4" />
+        </svg>
+        <div class="hero-horizon-glow"></div>
+      </div>
 
-        <h1 class="hero-monument" id="heroMonument">
-          <span class="reveal-line"><span class="wordmark-port">RISHABH</span></span>
-          <span class="reveal-line"><span class="wordmark-folio">Gupta</span></span>
+      <div class="container hero-stage" id="heroStage">
+        <h1 class="hero-monument">
+          <span class="hero-line-sans">Rishabh&rsquo;s</span>
+          <span class="hero-line-serif">Portfolio</span>
         </h1>
 
-        <div class="hero-bottom-bar">
-          <p class="hero-intro">
-            IT student, web developer, creative freelancer, and co-founder of KURO &mdash; building digital experiences in Mumbai.
-          </p>
-          <div class="hero-actions">
-            <a href="#works" class="btn-solid">Explore Selected Work</a>
-            <a href="#contact" class="btn-ghost">Let&rsquo;s Build Together</a>
-          </div>
+        <div class="hero-tagline-row">
+          <span class="tagline-rule" aria-hidden="true"></span>
+          <p class="hero-tagline">I build things. I create things. I keep getting better.</p>
+          <span class="tagline-rule" aria-hidden="true"></span>
+        </div>
+
+        <div class="hero-actions">
+          <a href="#works" class="btn-white">
+            <span>Explore My Work</span>
+            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="#contact" class="btn-outline">Let&rsquo;s Connect</a>
         </div>
       </div>
     </section>
@@ -104,9 +128,13 @@
     <section class="philosophy-band" aria-label="Personal philosophy">
       <div class="philosophy-track" id="philosophyTrack">
         <span>I build things. I create things. I keep getting better.</span>
+        <span class="marquee-sep" aria-hidden="true">|</span>
         <span aria-hidden="true">I build things. I create things. I keep getting better.</span>
+        <span class="marquee-sep" aria-hidden="true">|</span>
         <span aria-hidden="true">I build things. I create things. I keep getting better.</span>
+        <span class="marquee-sep" aria-hidden="true">|</span>
         <span aria-hidden="true">I build things. I create things. I keep getting better.</span>
+        <span class="marquee-sep" aria-hidden="true">|</span>
       </div>
     </section>
 
@@ -115,27 +143,27 @@
          ============================================================ -->
     <section id="about" class="section-block" aria-label="About Rishabh Gupta">
       <div class="container about-layout">
-        <div class="about-copy reveal-item">
-          <h2 class="section-heading">Building, creating, and learning in the open.</h2>
-          <p class="body-copy">
+        <div class="about-copy">
+          <h2 class="section-heading reveal-item" data-reveal="left">Building, creating, and learning in the open.</h2>
+          <p class="body-copy reveal-item" data-reveal="right" data-stagger="1">
             I&rsquo;m an IT student and web developer based in Mumbai. Alongside freelancing and co-founding KURO, I spend my time building websites, experimenting with AI, creating visual media, and working directly with businesses to launch things that work.
           </p>
-          <p class="body-copy">
+          <p class="body-copy reveal-item" data-reveal="right" data-stagger="2">
             I&rsquo;m not pretending to be a finished senior or a big corporation &mdash; I build, test, ship, and keep getting better with every project.
           </p>
 
-          <div class="focus-switcher" role="tablist" aria-label="Explore focus areas">
+          <div class="focus-switcher reveal-item" data-reveal="up" data-stagger="3" role="tablist" aria-label="Explore focus areas">
             <button type="button" class="focus-tab is-active" role="tab" aria-selected="true" data-focus="web">Websites</button>
             <button type="button" class="focus-tab" role="tab" aria-selected="false" data-focus="ai">AI &amp; Tech</button>
             <button type="button" class="focus-tab" role="tab" aria-selected="false" data-focus="creative">Creative &amp; Video</button>
             <button type="button" class="focus-tab" role="tab" aria-selected="false" data-focus="ads">Advertising</button>
           </div>
-          <p class="focus-detail" id="focusDetail" aria-live="polite">
+          <p class="focus-detail reveal-item" data-reveal="up" data-stagger="4" id="focusDetail" aria-live="polite">
             Designing and shipping responsive, custom websites for brands and local businesses &mdash; from concept to live domain.
           </p>
         </div>
 
-        <figure class="about-visual reveal-item">
+        <figure class="about-visual reveal-item" data-reveal="clip">
           <img src="assets/editorial-01.jpg" alt="Studio portrait representing Rishabh Gupta's creative direction" width="840" height="627" loading="lazy" decoding="async" />
           <figcaption class="media-caption">Mumbai &middot; IT Student, Developer &amp; KURO Co-Founder</figcaption>
         </figure>
@@ -147,66 +175,66 @@
          ============================================================ -->
     <section id="works" class="section-block" aria-label="Selected Work">
       <div class="container">
-        <div class="section-head reveal-item">
-          <h2 class="section-heading">Selected Work</h2>
-          <p class="section-sub">Real websites, client launches, and interactive gaming projects.</p>
+        <div class="section-head">
+          <h2 class="section-heading reveal-item" data-reveal="left">Selected Work</h2>
+          <p class="section-sub reveal-item" data-reveal="right" data-stagger="1">Real websites, client launches, and interactive gaming projects.</p>
         </div>
 
         <div class="projects-list">
           <!-- PROJECT 01: LUXORA -->
-          <article class="project-row reveal-item" data-project="luxora">
-            <div class="project-media">
+          <article class="project-row reveal-item" data-reveal="up" data-stagger="0" data-project="luxora">
+            <div class="project-media reveal-item" data-reveal="clip">
               <img src="assets/editorial-01.jpg" alt="LUXORA luxury interior design website presentation" width="840" height="627" loading="lazy" decoding="async" />
             </div>
             <div class="project-info">
-              <p class="project-meta">Luxury Interior &amp; Space Design &middot; Mumbai</p>
-              <h3 class="project-title">LUXORA</h3>
-              <p class="body-copy">
+              <p class="project-meta reveal-item" data-reveal="left">Luxury Interior &amp; Space Design &middot; Mumbai</p>
+              <h3 class="project-title reveal-item" data-reveal="left" data-stagger="1">LUXORA</h3>
+              <p class="body-copy reveal-item" data-reveal="right" data-stagger="2">
                 Website development, brand presentation, and creative social media work for a luxury interior and space design brand in Mumbai.
               </p>
-              <div class="project-actions">
-                <a href="https://luxorafinale.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn-solid">Live Project</a>
+              <div class="project-actions reveal-item" data-reveal="up" data-stagger="3">
+                <a href="https://luxorafinale.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn-solid"><span>Live Project</span><span class="btn-arrow" aria-hidden="true">&rarr;</span></a>
                 <button type="button" class="btn-ghost js-open-project" data-project-id="luxora">Project Details</button>
               </div>
             </div>
           </article>
 
           <!-- PROJECT 02: KOURAGE FITNESS -->
-          <article class="project-row project-row-reverse reveal-item" data-project="kourage">
-            <div class="project-media">
+          <article class="project-row project-row-reverse reveal-item" data-reveal="up" data-stagger="1" data-project="kourage">
+            <div class="project-media reveal-item" data-reveal="clip">
               <img src="assets/editorial-02.jpg" alt="Kourage Fitness live business website" width="840" height="627" loading="lazy" decoding="async" />
             </div>
             <div class="project-info">
-              <p class="project-meta">Launched / Live &middot; Next.js &amp; Vercel</p>
-              <h3 class="project-title">Kourage Fitness</h3>
-              <p class="body-copy">
+              <p class="project-meta reveal-item" data-reveal="left">Launched / Live &middot; Next.js &amp; Vercel</p>
+              <h3 class="project-title reveal-item" data-reveal="left" data-stagger="1">Kourage Fitness</h3>
+              <p class="body-copy reveal-item" data-reveal="right" data-stagger="2">
                 Complete real-world client website with mobile-friendly UX, direct WhatsApp enquiry integration, and production deployment on a custom domain.
               </p>
-              <div class="project-actions">
-                <a href="https://kouragefitness.in/" target="_blank" rel="noopener noreferrer" class="btn-solid">Visit kouragefitness.in</a>
+              <div class="project-actions reveal-item" data-reveal="up" data-stagger="3">
+                <a href="https://kouragefitness.in/" target="_blank" rel="noopener noreferrer" class="btn-solid"><span>Visit kouragefitness.in</span><span class="btn-arrow" aria-hidden="true">&rarr;</span></a>
                 <button type="button" class="btn-ghost js-open-project" data-project-id="kourage">Project Details</button>
               </div>
             </div>
           </article>
 
           <!-- PROJECT 03: ROBLOX & GAMING -->
-          <article class="project-row reveal-item" data-project="roblox">
-            <div class="project-media">
+          <article class="project-row reveal-item" data-reveal="up" data-stagger="2" data-project="roblox">
+            <div class="project-media reveal-item" data-reveal="clip">
               <img src="assets/editorial-03.jpg" alt="Roblox and Play Store racing game showcase" width="840" height="627" loading="lazy" decoding="async" />
             </div>
             <div class="project-info">
-              <p class="project-meta">Gaming &amp; Interactive Worlds &middot; Editable Showcase</p>
-              <h3 class="project-title">Roblox &amp; Racing Game</h3>
-              <p class="body-copy">
+              <p class="project-meta reveal-item" data-reveal="left">Gaming &amp; Interactive Worlds &middot; Editable Showcase</p>
+              <h3 class="project-title reveal-item" data-reveal="left" data-stagger="1">Roblox &amp; Racing Game</h3>
+              <p class="body-copy reveal-item" data-reveal="right" data-stagger="2">
                 Dedicated showcase for my Roblox-related work and a racing game available through the Google Play Store. Game title, credits, and store links are editable in config.
               </p>
-              <div class="editable-fields">
+              <div class="editable-fields reveal-item" data-reveal="up" data-stagger="3">
                 <span class="editable-tag">Game Title: Editable</span>
                 <span class="editable-tag">Contribution: Editable</span>
                 <span class="editable-tag">Play Store / Roblox Links: Editable</span>
               </div>
-              <div class="project-actions">
-                <button type="button" class="btn-solid js-open-project" data-project-id="roblox">Inspect Gaming Showcase</button>
+              <div class="project-actions reveal-item" data-reveal="up" data-stagger="4">
+                <button type="button" class="btn-solid js-open-project" data-project-id="roblox"><span>Inspect Gaming Showcase</span><span class="btn-arrow" aria-hidden="true">&rarr;</span></button>
               </div>
             </div>
           </article>
@@ -219,25 +247,25 @@
          ============================================================ -->
     <section id="kuro" class="kuro-section" aria-label="KURO Agency Experience">
       <div class="container kuro-grid">
-        <div class="kuro-content reveal-item">
-          <p class="kuro-role">Co-Founder &amp; Member</p>
-          <h2 class="kuro-title">KURO &mdash; Design &amp; Engineering Studio</h2>
-          <p class="body-copy">
+        <div class="kuro-content">
+          <p class="kuro-role reveal-item" data-reveal="left">Co-Founder &amp; Member</p>
+          <h2 class="kuro-title reveal-item" data-reveal="left" data-stagger="1">KURO &mdash; Design &amp; Engineering Studio</h2>
+          <p class="body-copy reveal-item" data-reveal="right" data-stagger="2">
             I&rsquo;m a co-founder and active member of KURO, building and growing the studio alongside the team. We work at the intersection of design, engineering, motion, and practical AI automation.
           </p>
-          <ul class="capability-list">
+          <ul class="capability-list reveal-item" data-reveal="up" data-stagger="3">
             <li>Website development</li>
             <li>Digital experiences</li>
             <li>AI-powered business automation</li>
             <li>Motion design</li>
             <li>Creative and engineering solutions</li>
           </ul>
-          <div class="project-actions">
-            <a href="https://kuro-agency-website.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn-solid">Visit KURO Website</a>
+          <div class="project-actions reveal-item" data-reveal="up" data-stagger="4">
+            <a href="https://kuro-agency-website.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn-solid"><span>Visit KURO Website</span><span class="btn-arrow" aria-hidden="true">&rarr;</span></a>
           </div>
         </div>
 
-        <a href="https://kuro-agency-website.vercel.app/" target="_blank" rel="noopener noreferrer" class="kuro-preview-card reveal-item" aria-label="Preview and visit KURO Design and Engineering Studio">
+        <a href="https://kuro-agency-website.vercel.app/" target="_blank" rel="noopener noreferrer" class="kuro-preview-card reveal-item" data-reveal="scale" aria-label="Preview and visit KURO Design and Engineering Studio">
           <img src="assets/editorial-05.jpg" alt="KURO Design and Engineering Studio preview" width="840" height="627" loading="lazy" decoding="async" />
           <div class="kuro-preview-caption">
             <strong>kuro-agency-website.vercel.app</strong>
@@ -252,12 +280,12 @@
          ============================================================ -->
     <section id="videos" class="section-block" aria-label="Video and Creative Showcase">
       <div class="container">
-        <div class="section-head-split reveal-item">
-          <div>
+        <div class="section-head-split">
+          <div class="reveal-item" data-reveal="left">
             <h2 class="section-heading">Video &amp; Creative Showcase</h2>
             <p class="section-sub">Built for vertical reels and landscape edits &mdash; ready for real footage.</p>
           </div>
-          <div class="filter-group" role="group" aria-label="Filter videos by format">
+          <div class="filter-group reveal-item" data-reveal="right" role="group" aria-label="Filter videos by format">
             <button type="button" class="filter-btn is-active" data-video-filter="all">All Formats</button>
             <button type="button" class="filter-btn" data-video-filter="reel">Vertical Reels</button>
             <button type="button" class="filter-btn" data-video-filter="landscape">Landscape</button>
@@ -274,14 +302,14 @@
          ADVERTISING & CAMPAIGN MANAGEMENT
          ============================================================ -->
     <section id="advertising" class="section-block" aria-label="Advertising and Campaign Management">
-      <div class="container split-panel reveal-item">
-        <div>
+      <div class="container split-panel">
+        <div class="reveal-item" data-reveal="left">
           <h2 class="section-heading">Advertising &amp; Campaign Management</h2>
           <p class="body-copy">
             Beyond design and code, I work with businesses on running paid advertisements &mdash; from campaign setup and audience targeting to creative selection and ongoing optimisation.
           </p>
         </div>
-        <ul class="clean-grid-list">
+        <ul class="clean-grid-list reveal-item" data-reveal="right" data-stagger="1">
           <li>Paid advertising</li>
           <li>Campaign setup</li>
           <li>Audience targeting</li>
@@ -297,7 +325,7 @@
          AI & AUTOMATION (COMPACT SUPPORTING SECTION)
          ============================================================ -->
     <section id="ai" class="ai-compact-section" aria-label="AI and Automation">
-      <div class="container ai-compact-box reveal-item">
+      <div class="container ai-compact-box reveal-item" data-reveal="up">
         <div class="ai-compact-head">
           <h2 class="ai-heading">AI &amp; Automation Experiments</h2>
           <p class="body-copy">Practical workflows and integrations I explore to save time and connect tools.</p>
@@ -316,15 +344,16 @@
          CONTACT — CLEAN PERSONAL CLOSING
          ============================================================ -->
     <section id="contact" class="contact-section" aria-label="Contact Rishabh Gupta">
-      <div class="container contact-wrap reveal-item">
-        <h2 class="contact-headline">Let&rsquo;s build something together.</h2>
-        <p class="body-copy contact-sub">
+      <div class="container contact-wrap">
+        <h2 class="contact-headline reveal-item" data-reveal="left">Let&rsquo;s build something together.</h2>
+        <p class="body-copy contact-sub reveal-item" data-reveal="right" data-stagger="1">
           Based in Mumbai, India. Open to freelance web projects, creative collaborations, and building new ideas.
         </p>
 
-        <div class="contact-cta-row">
+        <div class="contact-cta-row reveal-item" data-reveal="up" data-stagger="2">
           <a id="whatsappCta" href="https://wa.me/COUNTRYCODEPHONENUMBER" target="_blank" rel="noopener noreferrer" class="btn-solid btn-whatsapp">
-            Message on WhatsApp
+            <span>Message on WhatsApp</span>
+            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
           </a>
           <a href="https://instagram.com/rishabhgpt_" target="_blank" rel="noopener noreferrer" class="btn-ghost">
             Instagram @rishabhgpt_
