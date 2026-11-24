@@ -13,11 +13,6 @@
       let sceneDirty = true;
       let ambientDirty = true;
       let ambientAnimating = !motionQuery.matches;
-      const lowPowerDevice = !finePointerQuery.matches ||
-        (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4);
-      // Soft, already-blurred aurora: 30fps on touch / low-core devices is
-      // indistinguishable from 60fps but halves its fill cost there.
-      const ambientInterval = motionQuery.matches ? 0 : (lowPowerDevice ? 1000 / 30 : 0);
       let lastAmbientTime = 0;
 
       function requestFrame() {
@@ -46,12 +41,9 @@
         }
 
         if (ambientAnimating || ambientDirty) {
-          const due = ambientDirty || !ambientInterval || time - lastAmbientTime >= ambientInterval;
-          if (due) {
-            renderAmbient(time, ambientAnimating);
-            lastAmbientTime = time;
-            ambientDirty = false;
-          }
+          renderAmbient(time, ambientAnimating);
+          lastAmbientTime = time;
+          ambientDirty = false;
         }
 
         if (ambientAnimating || (lenis && lenis.isScrolling) || sceneDirty || ambientDirty) {
@@ -521,6 +513,7 @@
       const railDots = Array.from(document.querySelectorAll('.rail-dot'));
 
       let stripManualOffset = 0;
+      let stripNativeScroll = 0;
 
       function clamp(val, min, max) {
         return Math.max(min, Math.min(max, val));
@@ -532,7 +525,6 @@
       // changes per frame now.
       let geom = null;
       let lastActiveId = '';
-      let lastMobileMode = null;
       const counterData = counterEls.map((el) => ({
         el,
         target: parseInt(el.dataset.countTarget, 10),
@@ -583,6 +575,15 @@
       }
 
       function sectionProgress(section, scrollY) {
+        if (!geom.isDesktop) {
+          // Stacked layouts are not pinned, so the same 0 -> 1 timeline is
+          // mapped across the section's whole viewport traverse: from the
+          // moment its top enters the bottom of the screen until its bottom
+          // leaves the top. Every scene therefore still plays in full.
+          const enter = section.top - geom.vh;
+          const travel = Math.max(1, section.height + geom.vh);
+          return clamp((scrollY - enter) / travel, 0, 1);
+        }
         if (section.scrollable <= 0) return 0;
         return clamp(-(section.top - scrollY) / section.scrollable, 0, 1);
       }
@@ -614,22 +615,13 @@
           lastActiveId = activeId;
         }
 
-        if (!g.isDesktop) {
-          // Ensure counters show final values cleanly on mobile/tablet, once.
-          if (lastMobileMode !== false) {
-            counterData.forEach((c) => setCounterText(c, c.target + c.suffix));
-            [tileTL, tileTR, tileBL, tileBR].forEach((t) => {
-              writeStyle(t, 'transform', 'translate3d(0,0,0)');
-              writeStyle(t, 'opacity', '1');
-            });
-            lastMobileMode = false;
-          }
-          return;
-        }
-        lastMobileMode = true;
-
         // --- SCENE 1: HERO EXIT CHOREOGRAPHY ---
-        const pHero = sectionProgress(g.sections[0], sy);
+        // On stacked layouts the hero is only one screen tall, so its exit is
+        // driven from the first pixel of scroll rather than the shared
+        // enter/exit mapping used by the sections below it.
+        const pHero = g.isDesktop
+          ? sectionProgress(g.sections[0], sy)
+          : clamp(sy / Math.max(1, g.sections[0].height), 0, 1);
         const heroScale = 1 + pHero * 0.1;
         const heroY = -pHero * 64;
         const heroOp = clamp(1 - pHero * 1.15, 0, 1);
@@ -642,13 +634,24 @@
         const activeIdx = Math.round(activeFloat);
         writeStyle(aboutLeft, 'transform', `translate3d(0, ${((0.5 - pAbout) * 26).toFixed(1)}px, 0)`);
 
+        // The layered desktop reel has every card in one spot, so a 144px
+        // step reads as depth. The stacked mobile reel already separates the
+        // cards by a row, so the same depth cue uses a smaller step to keep
+        // the list readable while still scaling, shifting and fading in sync.
+        const reelStep = g.isDesktop ? 144 : 12;
+        const reelScaleBase = g.isDesktop ? 1.06 : 1;
+        const reelScaleStep = g.isDesktop ? 0.13 : 0.022;
+        const reelScaleMin = g.isDesktop ? 0.72 : 0.9;
+        const reelXStep = g.isDesktop ? 18 : 5;
+        const reelFade = g.isDesktop ? 0.34 : 0.075;
+        const reelFadeMin = g.isDesktop ? 0.16 : 0.7;
         reelCards.forEach((card, idx) => {
           const diff = idx - activeFloat;
           const absD = Math.abs(diff);
-          const yOffset = diff * 144;
-          const scale = clamp(1.06 - absD * 0.13, 0.72, 1.06);
-          const xOffset = absD * 18;
-          const opacity = clamp(1 - absD * 0.34, 0.16, 1);
+          const yOffset = diff * reelStep;
+          const scale = clamp(reelScaleBase - absD * reelScaleStep, reelScaleMin, reelScaleBase);
+          const xOffset = absD * reelXStep;
+          const opacity = clamp(1 - absD * reelFade, reelFadeMin, 1);
           writeStyle(card, 'transform', `translate3d(${xOffset.toFixed(1)}px, ${yOffset.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`);
           writeStyle(card, 'opacity', opacity.toFixed(3));
           writeStyle(card, 'zIndex', String(20 - Math.round(absD * 4)));
@@ -684,8 +687,13 @@
 
         // --- SCENE 5: HORIZONTAL FILMSTRIP + SELECTED 2026 WORKS ---
         const pWorks = sectionProgress(g.sections[4], sy);
-        const totalShift = clamp(pWorks * g.stripMax + stripManualOffset, 0, g.stripMax);
-        writeStyle(filmstripTrack, 'transform', `translate3d(${-totalShift.toFixed(1)}px, 0, 0)`);
+        // Touch layouts also allow a native horizontal swipe. The scroll
+        // timeline and that manual scroll are summed into one clamped visual
+        // offset so the strip can never be pushed past its last frame.
+        const manualShift = g.isDesktop ? stripManualOffset : stripNativeScroll;
+        const nativeShift = g.isDesktop ? 0 : stripNativeScroll;
+        const totalShift = clamp(pWorks * g.stripMax + manualShift, 0, g.stripMax);
+        writeStyle(filmstripTrack, 'transform', `translate3d(${(nativeShift - totalShift).toFixed(1)}px, 0, 0)`);
         writeStyle(worksLockup, 'transform', `translate3d(0, ${((0.5 - pWorks) * 22).toFixed(1)}px, 0)`);
 
         // --- SCENE 6: 4-TILE ASSEMBLING 2x2 MARK (00:17 - 00:19) ---
@@ -744,6 +752,12 @@
       const stripPrev = document.getElementById('stripPrev');
       const stripNext = document.getElementById('stripNext');
       const filmstripWrap = document.getElementById('filmstripWrap');
+
+      filmstripWrap.addEventListener('scroll', () => {
+        stripNativeScroll = filmstripWrap.scrollLeft;
+        sceneDirty = true;
+        requestFrame();
+      }, { passive: true });
 
       stripPrev.addEventListener('click', () => {
         if (window.innerWidth <= 1024) {

@@ -61,9 +61,17 @@ change how the browser is asked to draw it.
 - **Cheaper aurora, identical look.** The blurred wave is rasterised into a
   0.4-scale offscreen canvas and upscaled, the bokeh motes use five cached
   gradient sprites instead of ~28 gradients per frame, and the canvas context
-  is opaque so the compositor skips alpha blending. Touch / low-core devices
-  cap the aurora at 30fps with time-based drift; reduced motion renders one
-  static frame and stops the loop.
+  is opaque so the compositor skips alpha blending. The aurora runs at the
+  full display refresh rate on every device — no frame-rate cap or reduced
+  animation path for touch screens — and time-based drift keeps its speed
+  identical at any refresh rate. Reduced motion renders one static frame and
+  stops the loop.
+- **Cheaper film grain.** The full-viewport grain now composites normally at a
+  tuned opacity instead of using `mix-blend-mode: overlay`. A pixel diff over
+  four scroll positions measured an average change below 0.45/255 per channel
+  (no pixel differed by more than 4 except a handful of lazy images), while a
+  five-run interleaved headless benchmark cut median desktop p95 frame time
+  from 33.4ms to 17.1ms. The blur on the nav pill and glass cards is unchanged.
 - **Assets.** All 20 below-fold editorial images are `loading="lazy"`,
   `decoding="async"` and carry explicit `width`/`height`, so they neither block
   first paint nor shift layout when they arrive. The aurora backing store is
@@ -72,8 +80,38 @@ change how the browser is asked to draw it.
 
 A local headless-Chrome run over the same scroll path measured desktop p95
 frame time at 17.4ms (was 66.6ms), frames over 24ms at 13 (was 81), and forced
-layouts at 31 (was 203). The Android-sized run measured p95 17.1ms (was 34ms)
-with zero forced layouts (was 11).
+layouts at 31 (was 203). A later five-run interleaved A/B against the original
+overlay blend measured median desktop p95 17.1ms versus 33.4ms, with seven
+frames over 24ms per run versus fourteen. Scrolling through the full page
+produced CLS of 0.0008 on desktop, 0.0021 on Android and 0.0008 on tablet.
+
+## Animation on Every Screen
+
+All six scroll scenes run on desktop, tablet and phone. Stacked layouts are
+not pinned like the desktop sections, so `sectionProgress()` maps each section
+across its full viewport traverse (top entering the bottom of the screen to
+bottom leaving the top) instead of returning 0 for short sections. The hero
+uses its own one-screen exit on stacked layouts, and the contact tiles use the
+same contact-entry progress on every width. The mobile reel uses smaller
+scale/offset steps because its cards are in a list rather than a layered
+stack; they still scale, shift, fade and change the active card in sync with
+scroll. The responsive `!important` rules that forced `transform: none` and
+`opacity: 1` were removed, and `#hero` is clipped so its exit scale cannot
+create horizontal overflow.
+
+On touch widths the filmstrip keeps its native horizontal swipe while the
+scroll timeline adds a clamped offset, so manual and scroll-driven movement
+never push the last frame out of view. Lenis remains fine-pointer only; native
+touch scrolling stays untouched. Reduced motion stops ambient drift and
+smooth scrolling but, as on desktop, keeps the scroll-linked choreography.
+
+Verified in headless Chrome at 1440×900 (fine pointer), 768×1024 and 390×844
+(coarse pointer), plus a 390×844 reduced-motion profile: every scene element
+produced multiple distinct transform/opacity states while scrolling, counters
+scrubbed through intermediate values, no element was left hidden in an
+offscreen section, and the full nav/modal/form/drawer interaction suite passed
+with zero console errors. Real iOS Safari was not available in this
+environment; iOS was emulated at iPhone size in Chrome.
 
 ## Run Locally
 
