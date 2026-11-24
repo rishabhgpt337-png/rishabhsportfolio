@@ -2,36 +2,65 @@
       'use strict';
 
       /* ============================================================
-         0. SMOOTH SCROLL — LENIS ENGINE (laptop / fine-pointer tuned)
+         0. SINGLE FRAME DRIVER + LENIS (laptop / fine-pointer tuned)
          ============================================================ */
       const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
 
       let lenis = null;
-      let lenisRafId = 0;
-      let lenisRunning = false;
       let lenisPausedByUi = false;
+      let masterRafId = 0;
+      let sceneDirty = true;
+      let ambientDirty = true;
+      let ambientAnimating = !motionQuery.matches;
+      const lowPowerDevice = !finePointerQuery.matches ||
+        (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4);
+      // Soft, already-blurred aurora: 30fps on touch / low-core devices is
+      // indistinguishable from 60fps but halves its fill cost there.
+      const ambientInterval = motionQuery.matches ? 0 : (lowPowerDevice ? 1000 / 30 : 0);
+      let lastAmbientTime = 0;
+
+      function requestFrame() {
+        if (!masterRafId && !document.hidden) {
+          masterRafId = requestAnimationFrame(masterFrame);
+        }
+      }
+
+      function stopMasterLoop() {
+        if (masterRafId) cancelAnimationFrame(masterRafId);
+        masterRafId = 0;
+      }
+
+      // One rAF for Lenis, the scene timeline and the aurora. No competing
+      // loops, no second round of callbacks in the same frame.
+      function masterFrame(time) {
+        masterRafId = 0;
+        if (document.hidden) return;
+
+        if (lenis && !lenis.isStopped) lenis.raf(time);
+
+        if (sceneDirty) {
+          updateScrollScenes();
+          sceneDirty = false;
+          ambientDirty = true; // aurora tracks the same scroll value
+        }
+
+        if (ambientAnimating || ambientDirty) {
+          const due = ambientDirty || !ambientInterval || time - lastAmbientTime >= ambientInterval;
+          if (due) {
+            renderAmbient(time, ambientAnimating);
+            lastAmbientTime = time;
+            ambientDirty = false;
+          }
+        }
+
+        if (ambientAnimating || (lenis && lenis.isScrolling) || sceneDirty || ambientDirty) {
+          requestFrame();
+        }
+      }
 
       function canUseLenis() {
         return typeof window.Lenis === 'function' && !motionQuery.matches && finePointerQuery.matches;
-      }
-
-      function lenisFrame(time) {
-        if (!lenis || !lenisRunning) return;
-        lenis.raf(time);
-        lenisRafId = requestAnimationFrame(lenisFrame);
-      }
-
-      function startLenisLoop() {
-        if (!lenis || lenisRunning) return;
-        lenisRunning = true;
-        lenisRafId = requestAnimationFrame(lenisFrame);
-      }
-
-      function stopLenisLoop() {
-        lenisRunning = false;
-        if (lenisRafId) cancelAnimationFrame(lenisRafId);
-        lenisRafId = 0;
       }
 
       function initLenis() {
@@ -47,19 +76,20 @@
           touchMultiplier: 1,
           orientation: 'vertical',
           gestureOrientation: 'vertical',
-          autoRaf: false,            // driven by one loop we can pause
+          autoRaf: false,            // the single frame driver above ticks it
           autoResize: true,
           anchors: { offset: 0, duration: 1.05 },
           prevent: (node) => !!(node && node.closest && node.closest('[data-lenis-prevent]')),
           respectReducedMotion: true
         });
 
-        lenis.on('scroll', updateScrollScenes);
-        startLenisLoop();
+        // Only flag work here; the actual write happens in masterFrame after
+        // lenis.raf(), so the scroll-linked DOM is never a frame behind.
+        lenis.on('scroll', () => { sceneDirty = true; });
+        requestFrame();
       }
 
       function destroyLenis() {
-        stopLenisLoop();
         if (lenis) {
           lenis.destroy();
           lenis = null;
@@ -95,16 +125,34 @@
         window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
       }
 
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopMasterLoop();
+          if (lenis) lenis.stop();
+          return;
+        }
+        if (lenis && !lenisPausedByUi) lenis.start();
+        ambientDirty = true;
+        sceneDirty = true;
+        requestFrame();
+      });
+
       initLenis();
+      requestFrame();
 
       if (typeof motionQuery.addEventListener === 'function') {
         motionQuery.addEventListener('change', () => {
+          ambientAnimating = !motionQuery.matches;
+          ambientDirty = true;
           if (motionQuery.matches) destroyLenis();
           else initLenis();
+          requestFrame();
         });
         finePointerQuery.addEventListener('change', (e) => {
           if (e.matches) initLenis();
           else destroyLenis();
+          sceneDirty = true;
+          requestFrame();
         });
       }
 
@@ -251,11 +299,22 @@
          2. AMBIENT CINEMATIC BLUE AURORA & BOKEH CANVAS ENGINE
          ============================================================ */
       const canvas = document.getElementById('ambient-canvas');
-      const ctx = canvas.getContext('2d');
+      // The canvas is fully opaque (the void is painted every frame), so an
+      // opaque context lets the compositor skip per-pixel alpha blending.
+      const ctx = canvas.getContext('2d', { alpha: false });
       let cw = 0;
       let ch = 0;
       let dpr = 1;
       let globalScroll = 0;
+
+      // The aurora is a 42px-blurred layer: rasterising it at reduced size and
+      // upscaling gives the same soft field for a fraction of the blur cost.
+      const AURORA_SCALE = 0.4;
+      const auroraCanvas = document.createElement('canvas');
+      const auroraCtx = auroraCanvas.getContext('2d');
+      let aw = 0;
+      let ah = 0;
+      const bokehSprites = new Map();
 
       const bokehParticles = Array.from({ length: 28 }, (_, i) => ({
         x: ((i * 37.3) % 100) / 100,
@@ -289,22 +348,49 @@
         canvas.width = Math.floor(cw * dpr);
         canvas.height = Math.floor(ch * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        aw = Math.max(1, Math.floor(cw * AURORA_SCALE));
+        ah = Math.max(1, Math.floor(ch * AURORA_SCALE));
+        auroraCanvas.width = aw;
+        auroraCanvas.height = ah;
+        // Sprites are rasterised at the main canvas' density; rebuild if DPR
+        // changed (e.g. moving the window to another monitor).
+        bokehSprites.clear();
       }
 
       resizeCanvas();
 
-      let canvasResizeTick = false;
-      window.addEventListener('resize', () => {
-        if (canvasResizeTick) return;
-        canvasResizeTick = true;
-        requestAnimationFrame(() => {
-          resizeCanvas();
-          canvasResizeTick = false;
-        });
-      }, { passive: true });
+      // Five radii, one cached gradient each, instead of 28 gradients per frame.
+      function bokehSprite(radius) {
+        const key = radius.toFixed(2);
+        let sprite = bokehSprites.get(key);
+        if (sprite) return sprite;
 
-      function renderAmbient(timeMs) {
+        const rad = radius * 3.2;
+        const size = Math.ceil(rad * 2) + 2;
+        sprite = document.createElement('canvas');
+        sprite.width = Math.ceil(size * dpr);
+        sprite.height = Math.ceil(size * dpr);
+        const sctx = sprite.getContext('2d');
+        sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const center = size / 2;
+        const grad = sctx.createRadialGradient(center, center, 0, center, center, rad);
+        grad.addColorStop(0, 'rgba(170, 212, 255, 1)');
+        grad.addColorStop(0.5, 'rgba(48, 128, 255, 0.35)');
+        grad.addColorStop(1, 'rgba(10, 30, 80, 0)');
+        sctx.fillStyle = grad;
+        sctx.beginPath();
+        sctx.arc(center, center, rad, 0, Math.PI * 2);
+        sctx.fill();
+        bokehSprites.set(key, sprite);
+        return sprite;
+      }
+
+      function renderAmbient(timeMs, animate) {
         const t = timeMs * 0.00045;
+        // Time-based drift keeps the same speed at 60fps, 30fps or on a
+        // throttled low-power device instead of slowing the motes down.
+        const dt = animate ? (lastAmbientTime ? clamp((timeMs - lastAmbientTime) / 16.67, 0.2, 3) : 1) : 0;
         ctx.clearRect(0, 0, cw, ch);
 
         // Deep obsidian void
@@ -314,8 +400,8 @@
         // Subtle floating bokeh motes in the upper void
         for (let i = 0; i < bokehParticles.length; i++) {
           const p = bokehParticles[i];
-          p.x += p.vx;
-          p.y += p.vy;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
           if (p.x < -0.05) p.x = 1.05;
           if (p.x > 1.05) p.x = -0.05;
           if (p.y < -0.05) p.y = 0.76;
@@ -323,126 +409,91 @@
           const px = p.x * cw;
           const py = p.y * ch;
           const pulse = 0.7 + 0.3 * Math.sin(t * 2.2 + p.phase);
-          const rad = p.r * 3.2;
-          const grad = ctx.createRadialGradient(px, py, 0, px, py, rad);
-          grad.addColorStop(0, `rgba(170, 212, 255, ${(p.alpha * pulse).toFixed(3)})`);
-          grad.addColorStop(0.5, `rgba(48, 128, 255, ${(p.alpha * 0.35 * pulse).toFixed(3)})`);
-          grad.addColorStop(1, 'rgba(10, 30, 80, 0)');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(px, py, rad, 0, Math.PI * 2);
-          ctx.fill();
+          const sprite = bokehSprite(p.r);
+          const drawSize = sprite.width / dpr;
+          ctx.globalAlpha = p.alpha * pulse;
+          ctx.drawImage(sprite, px - drawSize / 2, py - drawSize / 2, drawSize, drawSize);
         }
+        ctx.globalAlpha = 1;
 
         // Organic undulating cinematic BLUE aurora wave (controlled, refined glow)
         // Shifts gently with scroll progress for continuous film feel
         const scrollShift = globalScroll * Math.PI * 2.4;
-        const baseHorizon = ch * (0.52 + 0.04 * Math.sin(scrollShift * 0.5));
+        const baseHorizon = ah * (0.52 + 0.04 * Math.sin(scrollShift * 0.5));
 
-        ctx.save();
-        ctx.filter = 'blur(42px)';
+        auroraCtx.clearRect(0, 0, aw, ah);
+        const ac = auroraCtx;
+        ac.save();
+        // Canvas filter lengths are in backing-store pixels, so scale the
+        // radius to keep the upscaled result identical to the original blur.
+        ac.filter = `blur(${(42 * AURORA_SCALE / dpr).toFixed(2)}px)`;
 
         // Layer 1: Deep midnight sapphire body
-        const g1 = ctx.createLinearGradient(0, baseHorizon - ch * 0.14, 0, ch);
+        const g1 = ac.createLinearGradient(0, baseHorizon - ah * 0.14, 0, ah);
         g1.addColorStop(0, 'rgba(8, 36, 108, 0.12)');
         g1.addColorStop(0.45, 'rgba(14, 64, 182, 0.58)');
         g1.addColorStop(1, 'rgba(7, 28, 86, 0.88)');
-        ctx.fillStyle = g1;
-        ctx.beginPath();
-        ctx.moveTo(-80, ch + 80);
-        for (let x = -80; x <= cw + 80; x += 64) {
-          const nx = x / cw;
+        ac.fillStyle = g1;
+        ac.beginPath();
+        ac.moveTo(-80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
+        for (let x = -80 * AURORA_SCALE; x <= aw + 80 * AURORA_SCALE; x += 64 * AURORA_SCALE) {
+          const nx = x / aw;
           const wave =
-            Math.sin(nx * 3.4 + t + scrollShift * 0.45) * (ch * 0.095) +
-            Math.cos(nx * 2.1 - t * 0.7 + scrollShift * 0.2) * (ch * 0.055);
-          ctx.lineTo(x, baseHorizon + wave);
+            Math.sin(nx * 3.4 + t + scrollShift * 0.45) * (ah * 0.095) +
+            Math.cos(nx * 2.1 - t * 0.7 + scrollShift * 0.2) * (ah * 0.055);
+          ac.lineTo(x, baseHorizon + wave);
         }
-        ctx.lineTo(cw + 80, ch + 80);
-        ctx.closePath();
-        ctx.fill();
+        ac.lineTo(aw + 80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
+        ac.closePath();
+        ac.fill();
 
         // Layer 2: Luminous cerulean / royal cobalt ribbon (left & right swells matching 00:02-00:19)
-        const g2 = ctx.createRadialGradient(
-          cw * (0.24 + 0.18 * Math.sin(t * 0.6 + scrollShift * 0.35)),
-          ch * 0.84,
-          cw * 0.04,
-          cw * 0.32,
-          ch * 0.86,
-          cw * 0.62
+        const g2 = ac.createRadialGradient(
+          aw * (0.24 + 0.18 * Math.sin(t * 0.6 + scrollShift * 0.35)),
+          ah * 0.84,
+          aw * 0.04,
+          aw * 0.32,
+          ah * 0.86,
+          aw * 0.62
         );
         g2.addColorStop(0, 'rgba(46, 134, 255, 0.54)');
         g2.addColorStop(0.5, 'rgba(20, 82, 214, 0.28)');
         g2.addColorStop(1, 'rgba(5, 18, 52, 0)');
-        ctx.fillStyle = g2;
-        ctx.beginPath();
-        ctx.moveTo(-80, ch + 80);
-        for (let x = -80; x <= cw + 80; x += 64) {
-          const nx = x / cw;
+        ac.fillStyle = g2;
+        ac.beginPath();
+        ac.moveTo(-80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
+        for (let x = -80 * AURORA_SCALE; x <= aw + 80 * AURORA_SCALE; x += 64 * AURORA_SCALE) {
+          const nx = x / aw;
           const wave =
-            Math.sin(nx * 4.2 - t * 0.9 + scrollShift * 0.6) * (ch * 0.085) +
-            Math.sin(nx * 1.8 + t * 0.4) * (ch * 0.05);
-          ctx.lineTo(x, baseHorizon + ch * 0.07 + wave);
+            Math.sin(nx * 4.2 - t * 0.9 + scrollShift * 0.6) * (ah * 0.085) +
+            Math.sin(nx * 1.8 + t * 0.4) * (ah * 0.05);
+          ac.lineTo(x, baseHorizon + ah * 0.07 + wave);
         }
-        ctx.lineTo(cw + 80, ch + 80);
-        ctx.closePath();
-        ctx.fill();
+        ac.lineTo(aw + 80 * AURORA_SCALE, ah + 80 * AURORA_SCALE);
+        ac.closePath();
+        ac.fill();
 
         // Layer 3: Controlled ice-blue crest highlight on right/bottom swell
-        const g3 = ctx.createRadialGradient(
-          cw * (0.78 - 0.14 * Math.cos(t * 0.5 + scrollShift * 0.4)),
-          ch * 0.78,
-          cw * 0.03,
-          cw * 0.76,
-          ch * 0.8,
-          cw * 0.48
+        const g3 = ac.createRadialGradient(
+          aw * (0.78 - 0.14 * Math.cos(t * 0.5 + scrollShift * 0.4)),
+          ah * 0.78,
+          aw * 0.03,
+          aw * 0.76,
+          ah * 0.8,
+          aw * 0.48
         );
         g3.addColorStop(0, 'rgba(92, 168, 255, 0.42)');
         g3.addColorStop(0.55, 'rgba(26, 98, 232, 0.18)');
         g3.addColorStop(1, 'rgba(4, 14, 42, 0)');
-        ctx.fillStyle = g3;
-        ctx.fillRect(0, ch * 0.32, cw, ch * 0.72);
+        ac.fillStyle = g3;
+        ac.fillRect(0, ah * 0.32, aw, ah * 0.72);
 
-        ctx.restore();
+        ac.restore();
+        ctx.drawImage(auroraCanvas, 0, 0, cw, ch);
       }
 
-      // Single ambient loop, paused whenever the tab is hidden so a
-      // backgrounded laptop stops burning GPU/CPU on a canvas nobody sees.
-      let ambientRafId = 0;
-
-      function ambientLoop(timeMs) {
-        if (document.hidden) {
-          ambientRafId = 0;
-          return;
-        }
-        renderAmbient(timeMs);
-        ambientRafId = requestAnimationFrame(ambientLoop);
-      }
-
-      function startAmbientLoop() {
-        if (ambientRafId) return;
-        ambientRafId = requestAnimationFrame(ambientLoop);
-      }
-
-      function stopAmbientLoop() {
-        if (ambientRafId) cancelAnimationFrame(ambientRafId);
-        ambientRafId = 0;
-      }
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          stopAmbientLoop();
-          stopLenisLoop();
-          if (lenis) lenis.stop();
-          return;
-        }
-        startAmbientLoop();
-        if (lenis) {
-          if (!lenisPausedByUi) lenis.start();
-          startLenisLoop();
-        }
-      });
-
-      startAmbientLoop();
+      // The ambient loop lives in the single master frame driver at the top;
+      // this canvas only exposes renderAmbient() and resizeCanvas() to it.
 
       /* ============================================================
          3. SCROLL-DRIVEN CINEMATIC TIMELINE ENGINE
@@ -475,63 +526,121 @@
         return Math.max(min, Math.min(max, val));
       }
 
-      function sectionProgress(el) {
-        const rect = el.getBoundingClientRect();
-        const scrollable = el.offsetHeight - window.innerHeight;
-        if (scrollable <= 0) return 0;
-        return clamp(-rect.top / scrollable, 0, 1);
+      // Geometry was previously read with getBoundingClientRect()/offsetHeight
+      // between style writes, forcing a synchronous layout every scroll frame.
+      // Measure once per resize/font load instead; only the scroll value
+      // changes per frame now.
+      let geom = null;
+      let lastActiveId = '';
+      let lastMobileMode = null;
+      const counterData = counterEls.map((el) => ({
+        el,
+        target: parseInt(el.dataset.countTarget, 10),
+        suffix: el.dataset.countSuffix || '',
+        last: ''
+      }));
+      const parallaxDepth = new WeakMap();
+      discoverItems.concat(impactItems).forEach((item) => {
+        parallaxDepth.set(item, parseFloat(item.dataset.parallax) || 0);
+      });
+
+      const styleCache = new WeakMap();
+      function writeStyle(el, prop, value) {
+        let cached = styleCache.get(el);
+        if (!cached) {
+          cached = Object.create(null);
+          styleCache.set(el, cached);
+        }
+        if (cached[prop] !== value) {
+          el.style[prop] = value;
+          cached[prop] = value;
+        }
+      }
+
+      function measureGeometry() {
+        resizeCanvas();
+        const vh = window.innerHeight;
+        const sy = window.scrollY;
+        const sections = [heroSec, aboutSec, servicesSec, impactSec, worksSec, contactSec].map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            id: el.id,
+            top: r.top + sy,
+            height: r.height,
+            scrollable: r.height - vh
+          };
+        });
+        geom = {
+          vh,
+          maxScroll: Math.max(1, document.documentElement.scrollHeight - vh),
+          isDesktop: window.innerWidth > 1024,
+          sections,
+          stripMax: Math.max(0, filmstripTrack.scrollWidth - window.innerWidth + 100)
+        };
+        sceneDirty = true;
+        ambientDirty = true;
+        requestFrame();
+      }
+
+      function sectionProgress(section, scrollY) {
+        if (section.scrollable <= 0) return 0;
+        return clamp(-(section.top - scrollY) / section.scrollable, 0, 1);
+      }
+
+      function setCounterText(counter, text) {
+        if (counter.last === text) return;
+        counter.el.textContent = text;
+        counter.last = text;
       }
 
       function updateScrollScenes() {
-        const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-        globalScroll = clamp(window.scrollY / maxScroll, 0, 1);
-        const isDesktop = window.innerWidth > 1024;
+        if (!geom) return;
+        const g = geom;
+        // Lenis exposes a float scroll position; using it instead of the
+        // integer window.scrollY removes 1px quantisation jitter per frame.
+        const sy = lenis ? lenis.animatedScroll : window.scrollY;
+        globalScroll = clamp(sy / g.maxScroll, 0, 1);
 
-        // Active section highlight for nav + rail
-        const sections = [
-          { id: 'hero', el: heroSec },
-          { id: 'about', el: aboutSec },
-          { id: 'services', el: servicesSec },
-          { id: 'impact', el: impactSec },
-          { id: 'works', el: worksSec },
-          { id: 'contact', el: contactSec }
-        ];
+        const mid = g.vh * 0.45;
         let activeId = 'hero';
-        const mid = window.innerHeight * 0.45;
-        for (let i = 0; i < sections.length; i++) {
-          const r = sections[i].el.getBoundingClientRect();
-          if (r.top <= mid && r.bottom >= mid * 0.4) {
-            activeId = sections[i].id;
-          }
+        for (let i = 0; i < g.sections.length; i++) {
+          const s = g.sections[i];
+          const top = s.top - sy;
+          if (top <= mid && top + s.height >= mid * 0.4) activeId = s.id;
         }
-        navLinks.forEach((a) => a.classList.toggle('active', a.dataset.section === activeId));
-        railDots.forEach((d) => d.classList.toggle('active', d.dataset.target === activeId));
+        if (activeId !== lastActiveId) {
+          navLinks.forEach((a) => a.classList.toggle('active', a.dataset.section === activeId));
+          railDots.forEach((d) => d.classList.toggle('active', d.dataset.target === activeId));
+          lastActiveId = activeId;
+        }
 
-        if (!isDesktop) {
-          // Ensure counters show final values cleanly on mobile/tablet
-          counterEls.forEach((el) => {
-            el.textContent = el.dataset.countTarget + (el.dataset.countSuffix || '');
-          });
-          [tileTL, tileTR, tileBL, tileBR].forEach((t) => {
-            t.style.transform = 'translate3d(0,0,0)';
-            t.style.opacity = '1';
-          });
+        if (!g.isDesktop) {
+          // Ensure counters show final values cleanly on mobile/tablet, once.
+          if (lastMobileMode !== false) {
+            counterData.forEach((c) => setCounterText(c, c.target + c.suffix));
+            [tileTL, tileTR, tileBL, tileBR].forEach((t) => {
+              writeStyle(t, 'transform', 'translate3d(0,0,0)');
+              writeStyle(t, 'opacity', '1');
+            });
+            lastMobileMode = false;
+          }
           return;
         }
+        lastMobileMode = true;
 
         // --- SCENE 1: HERO EXIT CHOREOGRAPHY ---
-        const pHero = sectionProgress(heroSec);
+        const pHero = sectionProgress(g.sections[0], sy);
         const heroScale = 1 + pHero * 0.1;
         const heroY = -pHero * 64;
         const heroOp = clamp(1 - pHero * 1.15, 0, 1);
-        heroStage.style.transform = `translate3d(0, ${heroY.toFixed(1)}px, 0) scale(${heroScale.toFixed(3)})`;
-        heroStage.style.opacity = heroOp.toFixed(3);
+        writeStyle(heroStage, 'transform', `translate3d(0, ${heroY.toFixed(1)}px, 0) scale(${heroScale.toFixed(3)})`);
+        writeStyle(heroStage, 'opacity', heroOp.toFixed(3));
 
         // --- SCENE 2: ABOUT + VERTICAL PERSPECTIVE REEL (01 -> 05) ---
-        const pAbout = sectionProgress(aboutSec);
+        const pAbout = sectionProgress(g.sections[1], sy);
         const activeFloat = pAbout * (reelCards.length - 1);
         const activeIdx = Math.round(activeFloat);
-        aboutLeft.style.transform = `translate3d(0, ${((0.5 - pAbout) * 26).toFixed(1)}px, 0)`;
+        writeStyle(aboutLeft, 'transform', `translate3d(0, ${((0.5 - pAbout) * 26).toFixed(1)}px, 0)`);
 
         reelCards.forEach((card, idx) => {
           const diff = idx - activeFloat;
@@ -540,79 +649,87 @@
           const scale = clamp(1.06 - absD * 0.13, 0.72, 1.06);
           const xOffset = absD * 18;
           const opacity = clamp(1 - absD * 0.34, 0.16, 1);
-          card.style.transform = `translate3d(${xOffset.toFixed(1)}px, ${yOffset.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
-          card.style.opacity = opacity.toFixed(3);
-          card.style.zIndex = String(20 - Math.round(absD * 4));
-          card.classList.toggle('is-active', idx === activeIdx);
+          writeStyle(card, 'transform', `translate3d(${xOffset.toFixed(1)}px, ${yOffset.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`);
+          writeStyle(card, 'opacity', opacity.toFixed(3));
+          writeStyle(card, 'zIndex', String(20 - Math.round(absD * 4)));
+          const isActive = idx === activeIdx;
+          if (card.classList.contains('is-active') !== isActive) card.classList.toggle('is-active', isActive);
         });
 
         // --- SCENE 3: SERVICES "Discover" SPATIAL PARALLAX ---
-        const pServices = sectionProgress(servicesSec);
+        const pServices = sectionProgress(g.sections[2], sy);
         const centeredS = (pServices - 0.5) * 2; // -1 to +1
-        discoverWord.style.transform = `translate3d(0, ${(-centeredS * 28).toFixed(1)}px, 0) scale(${(1 + Math.abs(centeredS) * 0.04).toFixed(3)})`;
-        discoverWord.style.opacity = clamp(1 - Math.max(0, Math.abs(centeredS) - 0.78) * 3.2, 0.15, 1).toFixed(3);
+        writeStyle(discoverWord, 'transform', `translate3d(0, ${(-centeredS * 28).toFixed(1)}px, 0) scale(${(1 + Math.abs(centeredS) * 0.04).toFixed(3)})`);
+        writeStyle(discoverWord, 'opacity', clamp(1 - Math.max(0, Math.abs(centeredS) - 0.78) * 3.2, 0.15, 1).toFixed(3));
 
         discoverItems.forEach((item) => {
-          const depth = parseFloat(item.dataset.parallax) || 0;
-          const dy = -centeredS * depth * 1.45;
-          item.style.transform = `translate3d(0, ${dy.toFixed(1)}px, 0)`;
+          const dy = -centeredS * parallaxDepth.get(item) * 1.45;
+          writeStyle(item, 'transform', `translate3d(0, ${dy.toFixed(1)}px, 0)`);
         });
 
         // --- SCENE 4: IMPACT STAGGERED METRIC CARDS + LIVE COUNTERS ---
-        const pImpact = sectionProgress(impactSec);
+        const pImpact = sectionProgress(g.sections[3], sy);
         const centeredI = (pImpact - 0.5) * 2;
         impactItems.forEach((item) => {
-          const depth = parseFloat(item.dataset.parallax) || 0;
-          const dy = -centeredI * depth * 1.35;
-          item.style.transform = `translate3d(0, ${dy.toFixed(1)}px, 0)`;
+          const dy = -centeredI * parallaxDepth.get(item) * 1.35;
+          writeStyle(item, 'transform', `translate3d(0, ${dy.toFixed(1)}px, 0)`);
         });
 
         // Scrub counters from 10% to 100% of target over first half of scene (matching 00:09 -> 00:12)
         const countRatio = clamp(pImpact * 2.1 + 0.12, 0.12, 1);
         const easedCount = 1 - Math.pow(1 - countRatio, 3);
-        counterEls.forEach((el) => {
-          const target = parseInt(el.dataset.countTarget, 10);
-          const suffix = el.dataset.countSuffix || '';
-          const current = Math.max(1, Math.round(target * easedCount));
-          el.textContent = current + suffix;
+        counterData.forEach((c) => {
+          setCounterText(c, Math.max(1, Math.round(c.target * easedCount)) + c.suffix);
         });
 
         // --- SCENE 5: HORIZONTAL FILMSTRIP + SELECTED 2026 WORKS ---
-        const pWorks = sectionProgress(worksSec);
-        const maxTrackShift = Math.max(0, filmstripTrack.scrollWidth - window.innerWidth + 100);
-        const totalShift = clamp(pWorks * maxTrackShift + stripManualOffset, 0, maxTrackShift);
-        filmstripTrack.style.transform = `translate3d(${-totalShift.toFixed(1)}px, 0, 0)`;
-        worksLockup.style.transform = `translate3d(0, ${((0.5 - pWorks) * 22).toFixed(1)}px, 0)`;
+        const pWorks = sectionProgress(g.sections[4], sy);
+        const totalShift = clamp(pWorks * g.stripMax + stripManualOffset, 0, g.stripMax);
+        writeStyle(filmstripTrack, 'transform', `translate3d(${-totalShift.toFixed(1)}px, 0, 0)`);
+        writeStyle(worksLockup, 'transform', `translate3d(0, ${((0.5 - pWorks) * 22).toFixed(1)}px, 0)`);
 
         // --- SCENE 6: 4-TILE ASSEMBLING 2x2 MARK (00:17 - 00:19) ---
-        const cRect = contactSec.getBoundingClientRect();
-        const assembleProgress = clamp((window.innerHeight - cRect.top) / (window.innerHeight * 0.72), 0, 1);
+        const contactTop = g.sections[5].top - sy;
+        const assembleProgress = clamp((g.vh - contactTop) / (g.vh * 0.72), 0, 1);
         const easedA = 1 - Math.pow(1 - assembleProgress, 3);
         const spread = (1 - easedA) * 58;
-        tileTL.style.transform = `translate3d(${(-spread).toFixed(1)}px, ${(-spread).toFixed(1)}px, 0)`;
-        tileTR.style.transform = `translate3d(${(spread).toFixed(1)}px, ${(-spread).toFixed(1)}px, 0)`;
-        tileBL.style.transform = `translate3d(${(-spread).toFixed(1)}px, ${(spread).toFixed(1)}px, 0)`;
-        tileBR.style.transform = `translate3d(${(spread).toFixed(1)}px, ${(spread).toFixed(1)}px, 0)`;
+        writeStyle(tileTL, 'transform', `translate3d(${(-spread).toFixed(1)}px, ${(-spread).toFixed(1)}px, 0)`);
+        writeStyle(tileTR, 'transform', `translate3d(${(spread).toFixed(1)}px, ${(-spread).toFixed(1)}px, 0)`);
+        writeStyle(tileBL, 'transform', `translate3d(${(-spread).toFixed(1)}px, ${(spread).toFixed(1)}px, 0)`);
+        writeStyle(tileBR, 'transform', `translate3d(${(spread).toFixed(1)}px, ${(spread).toFixed(1)}px, 0)`);
       }
 
-      let ticking = false;
-      function onScrollOrResize() {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(() => {
-            updateScrollScenes();
-            ticking = false;
-          });
-        }
-      }
-
-      // When Lenis owns the wheel, its own 'scroll' event drives the scene
-      // timeline directly (one frame fresher than a rAF-deferred window handler).
+      // Native scrolling only exists when Lenis is off (touch / reduced motion).
       window.addEventListener('scroll', () => {
-        if (!lenis) onScrollOrResize();
+        if (lenis) return;
+        sceneDirty = true;
+        requestFrame();
       }, { passive: true });
-      window.addEventListener('resize', onScrollOrResize);
-      updateScrollScenes();
+
+      let resizeTick = false;
+      window.addEventListener('resize', () => {
+        if (resizeTick) return;
+        resizeTick = true;
+        requestAnimationFrame(() => {
+          resizeTick = false;
+          measureGeometry();
+        });
+      }, { passive: true });
+
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureGeometry);
+      window.addEventListener('load', measureGeometry, { once: true });
+      if (typeof ResizeObserver === 'function') {
+        let lastBodyHeight = 0;
+        new ResizeObserver((entries) => {
+          const h = Math.round(entries[0].contentRect.height);
+          if (h === lastBodyHeight) return;
+          lastBodyHeight = h;
+          measureGeometry();
+        }).observe(document.body);
+      }
+
+      measureGeometry();
+
 
       /* ============================================================
          4. INTERACTIVE CONTROLS (RAIL, FILMSTRIP, MODAL, FORM, MENU)
@@ -633,7 +750,8 @@
           filmstripWrap.scrollBy({ left: -280, behavior: 'smooth' });
         } else {
           stripManualOffset = Math.max(-420, stripManualOffset - 260);
-          updateScrollScenes();
+          sceneDirty = true;
+          requestFrame();
         }
       });
 
@@ -642,7 +760,8 @@
           filmstripWrap.scrollBy({ left: 280, behavior: 'smooth' });
         } else {
           stripManualOffset = Math.min(420, stripManualOffset + 260);
-          updateScrollScenes();
+          sceneDirty = true;
+          requestFrame();
         }
       });
 
