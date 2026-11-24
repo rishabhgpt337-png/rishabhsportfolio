@@ -1,27 +1,39 @@
-# Portfolio Template
+# PORTfolio — Creative Agency Portfolio Website
 
-A single-file, dark editorial portfolio template. No build step, no dependencies to install — open `index.html` or deploy the folder as-is.
+Complete, dependency-free production website built with semantic HTML, modern CSS, and vanilla JavaScript.
 
-## Customize
+## Project Structure
 
-Everything lives in `index.html`. Search for `[` to find every placeholder and replace it with your own content.
+- `index.html` — Main entry point (links to `css/styles.css`, `js/main.js`, and `assets/`)
+- `css/styles.css` — Full design system, typography, fluted-glass surfaces, and responsive rules
+- `js/main.js` — Atmospheric blue aurora/bokeh canvas engine, 6-scene scroll choreography, modals, and inquiry form logic
+- `assets/` — 5 optimized dark-studio editorial images
+- `standalone/index.html` — Single-file self-contained build (all CSS, JS, and images embedded)
 
-- `[YOUR_NAME]`, `[YOUR_TITLE_HERE]`, `[YOUR_LOCATION]` — identity
-- `[YOUR_EMAIL_HERE]`, `[SOCIAL_ONE]` … — contact links and `mailto:`
-- `[PROJECT_HEADING]`, `[IMAGE_PLACEHOLDER]` — six work cards
-- `[SERVICE_ONE_TITLE]` … — services
-- `[YOUR_META_DESCRIPTION]`, `<title>` — SEO
+## Run Locally
 
-Media frames use CSS aspect ratios and placeholders. To add real images, replace the `.frame__label` span with an `<img>` or set a `background-image` on the frame.
+Open `index.html` directly in your browser, or start a local dev server:
 
-## Deploy
+```bash
+python3 -m http.server 8000
+# then visit http://localhost:8000
+```
 
-GitHub Pages: push to `main`, then **Settings → Pages → Deploy from branch → main / root**.
+Or with Node.js:
 
-Or host any static server, e.g. `python -m http.server`.
+```bash
+npx serve .
+```
 
-## Notes
+## Push to Your GitHub Repository
 
-- Fonts: Inter Tight + JetBrains Mono (Google Fonts).
-- Smooth scrolling: Lenis 1.3.27 (CDN), with a native fallback.
-- Respects `prefers-reduced-motion`; custom cursor and magnetic effects are pointer-fine only.
+```bash
+git clone https://github.com/rishabhgpt337-png/rishabhsportfolio.git
+cd rishabhsportfolio
+# Copy index.html, css/, js/, assets/, and README.md into this folder
+git add .
+git commit -m "Rebuild portfolio website"
+git push origin main
+```
+
+To publish live on GitHub Pages: open your repository **Settings -> Pages**, choose **Deploy from a branch**, select `main` and `/ (root)`, and save.
