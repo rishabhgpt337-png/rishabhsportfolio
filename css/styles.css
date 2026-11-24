@@ -50,6 +50,10 @@ img, video, svg {
   max-width: 100%;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 a {
   color: inherit;
 }
@@ -1318,14 +1322,12 @@ body.hero-ready .hero-actions {
 }
 
 .modal-editable {
-  padding: 14px;
+  padding: 14px 16px;
   border-radius: 10px;
   background: var(--bg-surface);
   font-size: 14px;
+  line-height: 1.55;
   color: var(--ink-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .modal-actions {
