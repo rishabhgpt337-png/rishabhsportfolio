@@ -7,7 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/lenis.css" />
 </head>
 <body>
   <canvas id="ambient-canvas" aria-hidden="true"></canvas>
@@ -590,7 +592,7 @@
 
   <!-- Service / Case Study Modal -->
   <div class="modal-backdrop" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-card">
+    <div class="modal-card" data-lenis-prevent>
       <button type="button" class="modal-close" id="modalCloseBtn" aria-label="Close modal">&times;</button>
       <div class="fluted-media modal-media">
         <img id="modalImg" src="" alt="" />
@@ -610,6 +612,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="js/vendor/lenis.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

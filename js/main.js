@@ -2,6 +2,113 @@
       'use strict';
 
       /* ============================================================
+         0. SMOOTH SCROLL — LENIS ENGINE (laptop / fine-pointer tuned)
+         ============================================================ */
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+      let lenis = null;
+      let lenisRafId = 0;
+      let lenisRunning = false;
+      let lenisPausedByUi = false;
+
+      function canUseLenis() {
+        return typeof window.Lenis === 'function' && !motionQuery.matches && finePointerQuery.matches;
+      }
+
+      function lenisFrame(time) {
+        if (!lenis || !lenisRunning) return;
+        lenis.raf(time);
+        lenisRafId = requestAnimationFrame(lenisFrame);
+      }
+
+      function startLenisLoop() {
+        if (!lenis || lenisRunning) return;
+        lenisRunning = true;
+        lenisRafId = requestAnimationFrame(lenisFrame);
+      }
+
+      function stopLenisLoop() {
+        lenisRunning = false;
+        if (lenisRafId) cancelAnimationFrame(lenisRafId);
+        lenisRafId = 0;
+      }
+
+      function initLenis() {
+        if (lenis || !canUseLenis()) return;
+
+        lenis = new window.Lenis({
+          // Trackpad damping: reacts on the first wheel tick, then glides.
+          // 0.09 keeps a 90-120Hz laptop panel from feeling floaty.
+          lerp: 0.09,
+          smoothWheel: true,
+          syncTouch: false,          // native touch scrolling on hybrid laptops
+          wheelMultiplier: 0.92,     // finer trackpad increments, no overshoot
+          touchMultiplier: 1,
+          orientation: 'vertical',
+          gestureOrientation: 'vertical',
+          autoRaf: false,            // driven by one loop we can pause
+          autoResize: true,
+          anchors: { offset: 0, duration: 1.05 },
+          prevent: (node) => !!(node && node.closest && node.closest('[data-lenis-prevent]')),
+          respectReducedMotion: true
+        });
+
+        lenis.on('scroll', updateScrollScenes);
+        startLenisLoop();
+      }
+
+      function destroyLenis() {
+        stopLenisLoop();
+        if (lenis) {
+          lenis.destroy();
+          lenis = null;
+        }
+      }
+
+      // Modal / drawer control: freeze the page without fighting the scroll position.
+      function setLenisPaused(paused) {
+        lenisPausedByUi = paused;
+        if (!lenis) return;
+        if (paused) lenis.stop();
+        else lenis.start();
+      }
+
+      function smoothScrollTo(target, options) {
+        const el = typeof target === 'string' ? document.querySelector(target) : target;
+        if (!el) return;
+        if (lenis) {
+          lenis.scrollTo(el, { offset: 0, duration: 1.05, ...options });
+          return;
+        }
+        el.scrollIntoView({
+          behavior: motionQuery.matches ? 'auto' : 'smooth',
+          block: 'start'
+        });
+      }
+
+      function smoothScrollTop() {
+        if (lenis) {
+          lenis.scrollTo(0, { duration: 1.05 });
+          return;
+        }
+        window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
+      }
+
+      initLenis();
+
+      if (typeof motionQuery.addEventListener === 'function') {
+        motionQuery.addEventListener('change', () => {
+          if (motionQuery.matches) destroyLenis();
+          else initLenis();
+        });
+        finePointerQuery.addEventListener('change', (e) => {
+          if (e.matches) initLenis();
+          else destroyLenis();
+        });
+      }
+
+      /* ============================================================
          1. STRUCTURED AGENCY DATA (SERVICES & CASE STUDIES)
          ============================================================ */
       const SERVICES_DATA = {
@@ -147,7 +254,7 @@
       const ctx = canvas.getContext('2d');
       let cw = 0;
       let ch = 0;
-      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let dpr = 1;
       let globalScroll = 0;
 
       const bokehParticles = Array.from({ length: 28 }, (_, i) => ({
@@ -160,17 +267,41 @@
         phase: i * 0.7
       }));
 
+      // The aurora is a full-viewport blurred layer, so it is fill-rate bound.
+      // Cap the backing store by a pixel budget: a 1440p retina laptop would
+      // otherwise push ~4M pixels through blur(42px) every frame for a soft,
+      // low-detail background where the extra density is invisible.
+      function computeCanvasDpr() {
+        const native = Math.min(window.devicePixelRatio || 1, 2);
+        const pixelBudget = 2300000;
+        const cssPixels = Math.max(1, window.innerWidth * window.innerHeight);
+        return clamp(Math.min(native, Math.sqrt(pixelBudget / cssPixels)), 1, native);
+      }
+
       function resizeCanvas() {
-        cw = window.innerWidth;
-        ch = window.innerHeight;
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const nextW = window.innerWidth;
+        const nextH = window.innerHeight;
+        const nextDpr = computeCanvasDpr();
+        if (nextW === cw && nextH === ch && nextDpr === dpr) return;
+        cw = nextW;
+        ch = nextH;
+        dpr = nextDpr;
         canvas.width = Math.floor(cw * dpr);
         canvas.height = Math.floor(ch * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
 
       resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+
+      let canvasResizeTick = false;
+      window.addEventListener('resize', () => {
+        if (canvasResizeTick) return;
+        canvasResizeTick = true;
+        requestAnimationFrame(() => {
+          resizeCanvas();
+          canvasResizeTick = false;
+        });
+      }, { passive: true });
 
       function renderAmbient(timeMs) {
         const t = timeMs * 0.00045;
@@ -272,10 +403,46 @@
         ctx.fillRect(0, ch * 0.32, cw, ch * 0.72);
 
         ctx.restore();
-        requestAnimationFrame(renderAmbient);
       }
 
-      requestAnimationFrame(renderAmbient);
+      // Single ambient loop, paused whenever the tab is hidden so a
+      // backgrounded laptop stops burning GPU/CPU on a canvas nobody sees.
+      let ambientRafId = 0;
+
+      function ambientLoop(timeMs) {
+        if (document.hidden) {
+          ambientRafId = 0;
+          return;
+        }
+        renderAmbient(timeMs);
+        ambientRafId = requestAnimationFrame(ambientLoop);
+      }
+
+      function startAmbientLoop() {
+        if (ambientRafId) return;
+        ambientRafId = requestAnimationFrame(ambientLoop);
+      }
+
+      function stopAmbientLoop() {
+        if (ambientRafId) cancelAnimationFrame(ambientRafId);
+        ambientRafId = 0;
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopAmbientLoop();
+          stopLenisLoop();
+          if (lenis) lenis.stop();
+          return;
+        }
+        startAmbientLoop();
+        if (lenis) {
+          if (!lenisPausedByUi) lenis.start();
+          startLenisLoop();
+        }
+      });
+
+      startAmbientLoop();
 
       /* ============================================================
          3. SCROLL-DRIVEN CINEMATIC TIMELINE ENGINE
@@ -439,7 +606,11 @@
         }
       }
 
-      window.addEventListener('scroll', onScrollOrResize, { passive: true });
+      // When Lenis owns the wheel, its own 'scroll' event drives the scene
+      // timeline directly (one frame fresher than a rAF-deferred window handler).
+      window.addEventListener('scroll', () => {
+        if (!lenis) onScrollOrResize();
+      }, { passive: true });
       window.addEventListener('resize', onScrollOrResize);
       updateScrollScenes();
 
@@ -449,7 +620,7 @@
       railDots.forEach((dot) => {
         dot.addEventListener('click', () => {
           const target = document.getElementById(dot.dataset.target);
-          if (target) target.scrollIntoView({ behavior: 'smooth' });
+          if (target) smoothScrollTo(target);
         });
       });
 
@@ -481,11 +652,13 @@
       mobileMenuBtn.addEventListener('click', () => {
         const open = mobileDrawer.classList.toggle('open');
         mobileMenuBtn.setAttribute('aria-expanded', String(open));
+        setLenisPaused(open);
       });
       mobileDrawer.querySelectorAll('a').forEach((link) => {
         link.addEventListener('click', () => {
           mobileDrawer.classList.remove('open');
           mobileMenuBtn.setAttribute('aria-expanded', 'false');
+          setLenisPaused(false);
         });
       });
 
@@ -518,10 +691,13 @@
         modalMetric.textContent = data.metric;
         currentModalServiceChip = data.serviceChip || '';
         modal.classList.add('open');
+        setLenisPaused(true);
       }
 
       function closeDetailModal() {
+        if (!modal.classList.contains('open')) return;
         modal.classList.remove('open');
+        setLenisPaused(false);
       }
 
       document.querySelectorAll('[data-modal-type]').forEach((el) => {
@@ -565,7 +741,7 @@
             if (c.dataset.service === currentModalServiceChip) c.classList.add('selected');
           });
         }
-        contactSec.scrollIntoView({ behavior: 'smooth' });
+        smoothScrollTo(contactSec);
         showToast('Scope pre-selected in the inquiry brief');
       });
 
@@ -620,7 +796,5 @@
       });
 
       // Back to top
-      document.getElementById('backTopBtn').addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+      document.getElementById('backTopBtn').addEventListener('click', smoothScrollTop);
     })();
