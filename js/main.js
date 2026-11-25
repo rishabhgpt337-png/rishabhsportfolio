@@ -24,6 +24,7 @@
     }
 
     let progress = 0;
+    let finished = false;
     let ready = document.readyState === 'complete';
     const startTime = performance.now();
 
@@ -35,12 +36,26 @@
       document.fonts.ready.then(markReady).catch(markReady);
     }
 
-    function stepPreloader(now) {
-      const elapsed = now - startTime;
+    function finishPreloader() {
+      if (finished) return;
+      finished = true;
+      if (preloaderFill) preloaderFill.style.width = '100%';
+      if (preloaderPercent) preloaderPercent.textContent = '100%';
+      preloader.classList.add('is-exiting');
+      document.body.classList.add('hero-ready');
+      setTimeout(() => preloader.classList.add('is-done'), 600);
+    }
+
+    // Safety timer so background/throttled tabs never stall on the preloader
+    setTimeout(finishPreloader, 1800);
+
+    function stepPreloader() {
+      if (finished) return;
+      const elapsed = performance.now() - startTime;
       const minDisplayDone = elapsed >= 400;
-      const forceFinish = elapsed > 1100;
+      const forceFinish = elapsed >= 1100;
       const target = (ready && minDisplayDone) || forceFinish ? 100 : 88;
-      const speed = (ready && minDisplayDone) || forceFinish ? 0.22 : 0.1;
+      const speed = (ready && minDisplayDone) || forceFinish ? 0.24 : 0.11;
       progress += (target - progress) * speed;
 
       if (target === 100 && progress > 99) progress = 100;
@@ -49,9 +64,7 @@
       if (preloaderPercent) preloaderPercent.textContent = `${pct}%`;
 
       if (progress >= 100) {
-        preloader.classList.add('is-exiting');
-        document.body.classList.add('hero-ready');
-        setTimeout(() => preloader.classList.add('is-done'), 600);
+        finishPreloader();
         return;
       }
       requestAnimationFrame(stepPreloader);
