@@ -4,7 +4,7 @@
   const CONFIG = window.PORTFOLIO_CONFIG || {};
 
   /* ============================================================
-     0. CUSTOM CINEMATIC PRELOADER (INITIAL ENTRY ONLY)
+     0. CUSTOM CINEMATIC PRELOADER (EVERY PAGE LOAD / REFRESH)
      ============================================================ */
   const preloader = document.getElementById('preloader');
   const preloaderFill = document.getElementById('preloaderFill');
@@ -18,19 +18,7 @@
   }
 
   function runPreloader() {
-    if (!preloader || motionQuery.matches) {
-      revealHeroImmediately();
-      return;
-    }
-
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem('rishabh_preloader_seen') === '1';
-    } catch (e) {
-      seen = false;
-    }
-
-    if (seen) {
+    if (!preloader) {
       revealHeroImmediately();
       return;
     }
@@ -49,21 +37,21 @@
 
     function stepPreloader(now) {
       const elapsed = now - startTime;
-      const forceFinish = elapsed > 1300;
-      const target = ready || forceFinish ? 100 : 88;
-      const speed = ready || forceFinish ? 0.16 : 0.08;
+      const minDisplayDone = elapsed >= 400;
+      const forceFinish = elapsed > 1100;
+      const target = (ready && minDisplayDone) || forceFinish ? 100 : 88;
+      const speed = (ready && minDisplayDone) || forceFinish ? 0.22 : 0.1;
       progress += (target - progress) * speed;
 
-      if (target === 100 && progress > 99.2) progress = 100;
+      if (target === 100 && progress > 99) progress = 100;
       const pct = Math.round(progress);
       if (preloaderFill) preloaderFill.style.width = `${pct}%`;
       if (preloaderPercent) preloaderPercent.textContent = `${pct}%`;
 
       if (progress >= 100) {
-        try { sessionStorage.setItem('rishabh_preloader_seen', '1'); } catch (e) {}
         preloader.classList.add('is-exiting');
         document.body.classList.add('hero-ready');
-        setTimeout(() => preloader.classList.add('is-done'), 750);
+        setTimeout(() => preloader.classList.add('is-done'), 600);
         return;
       }
       requestAnimationFrame(stepPreloader);
@@ -81,10 +69,10 @@
   let lenisPausedByUi = false;
   let masterRafId = 0;
   let ambientDirty = true;
-  let ambientAnimating = !motionQuery.matches;
+  let ambientAnimating = true;
   const lowPowerDevice = !finePointerQuery.matches ||
     (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4);
-  const ambientInterval = motionQuery.matches ? 0 : (lowPowerDevice ? 1000 / 30 : 0);
+  const ambientInterval = lowPowerDevice || motionQuery.matches ? 1000 / 30 : 0;
   let lastAmbientTime = 0;
 
   function requestFrame() {
@@ -444,11 +432,83 @@
   observeReveals(document);
 
   /* ============================================================
-     4. VIDEO & CREATIVE SHOWCASE (RENDER + FILTER + MODAL)
+     4. VIDEO & CREATIVE SHOWCASE (AUTOPLAY VIEWPORT + UNMUTE TOGGLE)
      ============================================================ */
   const videoGrid = document.getElementById('videoGrid');
   const videoFilterBtns = Array.from(document.querySelectorAll('[data-video-filter]'));
   const videosData = Array.isArray(CONFIG.videos) ? CONFIG.videos : [];
+  let activeUnmutedCard = null;
+
+  function muteCard(card) {
+    if (!card) return;
+    const vid = card.querySelector('.video-player');
+    if (vid) vid.muted = true;
+    card.classList.remove('is-unmuted');
+    card.setAttribute('aria-pressed', 'false');
+    if (activeUnmutedCard === card) activeUnmutedCard = null;
+  }
+
+  function toggleCardSound(card) {
+    const vid = card.querySelector('.video-player');
+    if (!vid) return;
+
+    if (card.classList.contains('is-unmuted')) {
+      muteCard(card);
+      return;
+    }
+
+    if (activeUnmutedCard && activeUnmutedCard !== card) {
+      muteCard(activeUnmutedCard);
+    }
+
+    vid.muted = false;
+    card.classList.add('is-unmuted');
+    card.setAttribute('aria-pressed', 'true');
+    activeUnmutedCard = card;
+
+    if (vid.paused) {
+      vid.play().then(() => card.classList.add('is-playing')).catch(() => {
+        // Fallback to muted playback if browser blocks unmuted play
+        vid.muted = true;
+        card.classList.remove('is-unmuted');
+        vid.play().then(() => card.classList.add('is-playing')).catch(() => {});
+      });
+    }
+  }
+
+  function playCardMuted(card) {
+    const vid = card.querySelector('.video-player');
+    if (!vid) return;
+    if (card !== activeUnmutedCard) vid.muted = true;
+    const p = vid.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => card.classList.add('is-playing')).catch(() => {});
+    } else {
+      card.classList.add('is-playing');
+    }
+  }
+
+  function pauseCard(card) {
+    const vid = card.querySelector('.video-player');
+    if (!vid) return;
+    vid.pause();
+    if (card.classList.contains('is-unmuted')) {
+      muteCard(card);
+    }
+  }
+
+  const videoViewportObserver = ('IntersectionObserver' in window)
+    ? new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const card = entry.target;
+          if (entry.isIntersecting) {
+            playCardMuted(card);
+          } else {
+            pauseCard(card);
+          }
+        });
+      }, { threshold: 0.25 })
+    : null;
 
   function buildVideoCard(item, idx) {
     const card = document.createElement('article');
@@ -457,18 +517,32 @@
     card.dataset.reveal = 'up';
     card.dataset.stagger = String(idx % 4);
     card.tabIndex = 0;
-    card.setAttribute('aria-label', `${item.title} — hover to preview`);
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-pressed', 'false');
+    card.setAttribute('aria-label', `${item.title} — tap to toggle sound`);
 
     const posterSrc = item.poster || '';
     const hasVideo = Boolean(item.videoSrc);
     const videoElHtml = hasVideo
-      ? `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="metadata"></video>`
+      ? `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="none"></video>`
       : '';
 
     card.innerHTML = `
       <div class="video-frame">
         ${posterSrc ? `<img class="video-poster" src="${posterSrc}" alt="${item.title}" loading="lazy" decoding="async" />` : ''}
         ${videoElHtml}
+        <span class="video-sound-badge" aria-hidden="true">
+          <svg class="icon-sound-off" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="22" y1="9" x2="16" y2="15"></line>
+            <line x1="16" y1="9" x2="22" y2="15"></line>
+          </svg>
+          <svg class="icon-sound-on" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+        </span>
       </div>
       <div class="video-meta">
         <h3 class="video-title">${item.title}</h3>
@@ -478,60 +552,21 @@
 
     if (hasVideo) {
       const vidEl = card.querySelector('.video-player');
-      let resetTimer = null;
+      vidEl.addEventListener('playing', () => card.classList.add('is-playing'));
 
-      const startPreview = () => {
-        if (resetTimer) {
-          clearTimeout(resetTimer);
-          resetTimer = null;
-        }
-        const playPromise = vidEl.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise.then(() => {
-            if (card.matches(':hover') || card.dataset.touchPlaying === '1' || document.activeElement === card) {
-              card.classList.add('is-playing');
-            }
-          }).catch(() => {});
-        } else {
-          card.classList.add('is-playing');
-        }
-      };
-
-      const stopPreview = () => {
-        card.classList.remove('is-playing');
-        delete card.dataset.touchPlaying;
-        vidEl.pause();
-        resetTimer = setTimeout(() => {
-          if (!card.classList.contains('is-playing')) {
-            try { vidEl.currentTime = 0; } catch (e) {}
-          }
-        }, 320);
-      };
-
-      card.addEventListener('mouseenter', startPreview);
-      card.addEventListener('mouseleave', stopPreview);
-      card.addEventListener('focusin', startPreview);
-      card.addEventListener('focusout', stopPreview);
-
-      card.addEventListener('click', () => {
-        if (!finePointerQuery.matches) {
-          if (card.classList.contains('is-playing')) {
-            stopPreview();
-          } else {
-            card.dataset.touchPlaying = '1';
-            startPreview();
-          }
-        } else {
-          openVideoModal(item);
-        }
-      });
-
+      card.addEventListener('click', () => toggleCardSound(card));
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openVideoModal(item);
+          toggleCardSound(card);
         }
       });
+
+      if (videoViewportObserver) {
+        videoViewportObserver.observe(card);
+      } else {
+        playCardMuted(card);
+      }
     }
 
     return card;
@@ -539,7 +574,12 @@
 
   function renderVideos(filter) {
     if (!videoGrid) return;
+    if (videoViewportObserver) {
+      videoGrid.querySelectorAll('.video-card').forEach((c) => videoViewportObserver.unobserve(c));
+    }
+    activeUnmutedCard = null;
     videoGrid.innerHTML = '';
+
     const filtered = filter === 'all' ? videosData : videosData.filter((v) => v.format === filter);
     const landscapeItems = filtered.filter((v) => v.format === 'landscape');
     const reelItems = filtered.filter((v) => v.format !== 'landscape');
@@ -740,8 +780,10 @@
   }
 
   const whatsappCta = document.getElementById('whatsappCta');
-  if (whatsappCta && CONFIG.personal && CONFIG.personal.whatsappUrl) {
-    whatsappCta.href = CONFIG.personal.whatsappUrl;
+  const floatingWhatsapp = document.getElementById('floatingWhatsapp');
+  if (CONFIG.personal && CONFIG.personal.whatsappUrl) {
+    if (whatsappCta) whatsappCta.href = CONFIG.personal.whatsappUrl;
+    if (floatingWhatsapp) floatingWhatsapp.href = CONFIG.personal.whatsappUrl;
   }
 
   document.querySelectorAll('.js-placeholder-link').forEach((link) => {

@@ -7,7 +7,7 @@ window.PORTFOLIO_CONFIG = {
     name: 'Rishabh Gupta',
     handle: '@rishabhgpt_',
     location: 'Mumbai, India',
-    whatsappUrl: 'https://wa.me/COUNTRYCODEPHONENUMBER',
+    whatsappUrl: 'https://wa.me/918299593361?text=Hey%20Rishabh!%20I%20came%20across%20your%20portfolio%20and%20I%27m%20interested%20in%20working%20with%20you.%20I%27d%20love%20to%20discuss%20a%20project%20with%20you.',
     instagramUrl: 'https://instagram.com/rishabhgpt_',
     githubUrl: 'https://github.com/rishabhgpt337-png',
     linkedinUrl: '#',
