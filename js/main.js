@@ -113,16 +113,16 @@
   function initLenis() {
     if (lenis || !canUseLenis()) return;
     lenis = new window.Lenis({
-      lerp: 0.09,
+      lerp: 0.085,
       smoothWheel: true,
       syncTouch: false,
-      wheelMultiplier: 0.92,
+      wheelMultiplier: 0.95,
       touchMultiplier: 1,
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       autoRaf: false,
       autoResize: true,
-      anchors: { offset: -72, duration: 1.0 },
+      anchors: { offset: -72, duration: 1.05 },
       prevent: (node) => !!(node && node.closest && node.closest('[data-lenis-prevent]')),
       respectReducedMotion: true
     });
@@ -432,12 +432,24 @@
   observeReveals(document);
 
   /* ============================================================
-     4. VIDEO & CREATIVE SHOWCASE (AUTOPLAY VIEWPORT + UNMUTE TOGGLE)
+     4. VIDEO & CREATIVE SHOWCASE
+        - Desktop: Autoplay muted on viewport entry + single unmute toggle
+        - Mobile: Tap-to-play with original audio, paused initially, zero pre-buffering
      ============================================================ */
   const videoGrid = document.getElementById('videoGrid');
   const videoFilterBtns = Array.from(document.querySelectorAll('[data-video-filter]'));
   const videosData = Array.isArray(CONFIG.videos) ? CONFIG.videos : [];
+  const mobileViewportQuery = window.matchMedia('(max-width: 767px)');
+  const coarsePointerQuery = window.matchMedia('(hover: none) and (pointer: coarse)');
+
+  function isMobileVideoMode() {
+    return mobileViewportQuery.matches || coarsePointerQuery.matches;
+  }
+
+  let currentVideoFilter = 'all';
+  let currentMobileMode = isMobileVideoMode();
   let activeUnmutedCard = null;
+  let activeMobileCard = null;
 
   function muteCard(card) {
     if (!card) return;
@@ -468,7 +480,6 @@
 
     if (vid.paused) {
       vid.play().then(() => card.classList.add('is-playing')).catch(() => {
-        // Fallback to muted playback if browser blocks unmuted play
         vid.muted = true;
         card.classList.remove('is-unmuted');
         vid.play().then(() => card.classList.add('is-playing')).catch(() => {});
@@ -476,9 +487,61 @@
     }
   }
 
+  function stopMobileCard(card, resetTime) {
+    if (!card) return;
+    const vid = card.querySelector('.video-player');
+    card.classList.remove('is-playing');
+    card.setAttribute('aria-pressed', 'false');
+    if (vid) {
+      vid.pause();
+      if (resetTime) {
+        try { vid.currentTime = 0; } catch (e) {}
+      }
+    }
+    if (activeMobileCard === card) activeMobileCard = null;
+  }
+
+  function toggleMobileCard(card) {
+    const vid = card.querySelector('.video-player');
+    if (!vid) return;
+
+    if (activeMobileCard === card && !vid.paused) {
+      stopMobileCard(card, false);
+      return;
+    }
+
+    if (activeMobileCard && activeMobileCard !== card) {
+      stopMobileCard(activeMobileCard, false);
+    }
+
+    if (!vid.getAttribute('src') && vid.dataset.src) {
+      vid.setAttribute('src', vid.dataset.src);
+    }
+    vid.muted = false;
+    vid.loop = false;
+    activeMobileCard = card;
+    card.setAttribute('aria-pressed', 'true');
+
+    const p = vid.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        if (activeMobileCard === card && !vid.paused) {
+          card.classList.add('is-playing');
+        }
+      }).catch(() => {
+        stopMobileCard(card, false);
+      });
+    } else {
+      card.classList.add('is-playing');
+    }
+  }
+
   function playCardMuted(card) {
     const vid = card.querySelector('.video-player');
     if (!vid) return;
+    if (!vid.getAttribute('src') && vid.dataset.src) {
+      vid.setAttribute('src', vid.dataset.src);
+    }
     if (card !== activeUnmutedCard) vid.muted = true;
     const p = vid.play();
     if (p && typeof p.then === 'function') {
@@ -488,7 +551,7 @@
     }
   }
 
-  function pauseCard(card) {
+  function pauseDesktopCard(card) {
     const vid = card.querySelector('.video-player');
     if (!vid) return;
     vid.pause();
@@ -497,40 +560,77 @@
     }
   }
 
+  // Progressive background preparation for upcoming desktop videos
+  const desktopPrewarmObserver = ('IntersectionObserver' in window)
+    ? new IntersectionObserver((entries) => {
+        if (isMobileVideoMode()) return;
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const vid = entry.target.querySelector('.video-player');
+          if (vid) {
+            if (!vid.getAttribute('src') && vid.dataset.src) {
+              vid.setAttribute('src', vid.dataset.src);
+            }
+            if (vid.preload === 'none') vid.preload = 'metadata';
+          }
+          desktopPrewarmObserver.unobserve(entry.target);
+        });
+      }, { rootMargin: '450px 0px' })
+    : null;
+
   const videoViewportObserver = ('IntersectionObserver' in window)
     ? new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const card = entry.target;
-          if (entry.isIntersecting) {
+          const mobileMode = card.classList.contains('is-mobile-mode');
+          if (mobileMode) {
+            // Mobile: NEVER autoplay; only pause if scrolling away from a playing reel
+            if (!entry.isIntersecting) {
+              stopMobileCard(card, false);
+            }
+          } else if (entry.isIntersecting) {
             playCardMuted(card);
           } else {
-            pauseCard(card);
+            pauseDesktopCard(card);
           }
         });
       }, { threshold: 0.25 })
     : null;
 
-  function buildVideoCard(item, idx) {
+  function buildVideoCard(item, idx, mobileMode) {
     const card = document.createElement('article');
     const isLandscape = item.format === 'landscape';
-    card.className = `video-card reveal-item ${isLandscape ? 'is-landscape' : 'is-reel'}`;
+    card.className = `video-card reveal-item ${isLandscape ? 'is-landscape' : 'is-reel'}${mobileMode ? ' is-mobile-mode' : ''}`;
     card.dataset.reveal = 'up';
     card.dataset.stagger = String(idx % 4);
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
     card.setAttribute('aria-pressed', 'false');
-    card.setAttribute('aria-label', `${item.title} — tap to toggle sound`);
+    card.setAttribute(
+      'aria-label',
+      mobileMode ? `${item.title} — tap to play` : `${item.title} — tap to toggle sound`
+    );
 
     const posterSrc = item.poster || '';
     const hasVideo = Boolean(item.videoSrc);
-    const videoElHtml = hasVideo
-      ? `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="none"></video>`
-      : '';
+    let videoElHtml = '';
+    if (hasVideo) {
+      if (mobileMode) {
+        // Mobile: no src and preload="none" until user taps, zero upfront buffering
+        videoElHtml = `<video class="video-player" data-src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} playsinline preload="none"></video>`;
+      } else {
+        const preloadMode = idx < 4 ? 'metadata' : 'none';
+        videoElHtml = `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="${preloadMode}"></video>`;
+      }
+    }
 
     card.innerHTML = `
       <div class="video-frame">
         ${posterSrc ? `<img class="video-poster" src="${posterSrc}" alt="${item.title}" loading="lazy" decoding="async" />` : ''}
         ${videoElHtml}
+        <span class="video-mobile-play" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+        </span>
         <span class="video-sound-badge" aria-hidden="true">
           <svg class="icon-sound-off" viewBox="0 0 24 24">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -554,17 +654,29 @@
       const vidEl = card.querySelector('.video-player');
       vidEl.addEventListener('playing', () => card.classList.add('is-playing'));
 
-      card.addEventListener('click', () => toggleCardSound(card));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleCardSound(card);
-        }
-      });
+      if (mobileMode) {
+        vidEl.addEventListener('ended', () => stopMobileCard(card, true));
+        card.addEventListener('click', () => toggleMobileCard(card));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleMobileCard(card);
+          }
+        });
+      } else {
+        card.addEventListener('click', () => toggleCardSound(card));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleCardSound(card);
+          }
+        });
+        if (desktopPrewarmObserver) desktopPrewarmObserver.observe(card);
+      }
 
       if (videoViewportObserver) {
         videoViewportObserver.observe(card);
-      } else {
+      } else if (!mobileMode) {
         playCardMuted(card);
       }
     }
@@ -574,10 +686,18 @@
 
   function renderVideos(filter) {
     if (!videoGrid) return;
+    currentVideoFilter = filter;
+    const mobileMode = isMobileVideoMode();
+    currentMobileMode = mobileMode;
+
     if (videoViewportObserver) {
       videoGrid.querySelectorAll('.video-card').forEach((c) => videoViewportObserver.unobserve(c));
     }
+    if (desktopPrewarmObserver) {
+      videoGrid.querySelectorAll('.video-card').forEach((c) => desktopPrewarmObserver.unobserve(c));
+    }
     activeUnmutedCard = null;
+    activeMobileCard = null;
     videoGrid.innerHTML = '';
 
     const filtered = filter === 'all' ? videosData : videosData.filter((v) => v.format === filter);
@@ -587,21 +707,33 @@
     if (landscapeItems.length) {
       const landscapeWrap = document.createElement('div');
       landscapeWrap.className = 'video-landscape-grid';
-      landscapeItems.forEach((item, idx) => landscapeWrap.appendChild(buildVideoCard(item, idx)));
+      landscapeItems.forEach((item, idx) => landscapeWrap.appendChild(buildVideoCard(item, idx, mobileMode)));
       videoGrid.appendChild(landscapeWrap);
     }
 
     if (reelItems.length) {
       const reelsWrap = document.createElement('div');
       reelsWrap.className = 'video-reels-grid';
-      reelItems.forEach((item, idx) => reelsWrap.appendChild(buildVideoCard(item, idx)));
+      reelItems.forEach((item, idx) => reelsWrap.appendChild(buildVideoCard(item, idx, mobileMode)));
       videoGrid.appendChild(reelsWrap);
     }
 
     observeReveals(videoGrid);
+    if (lenis && typeof lenis.resize === 'function') lenis.resize();
   }
 
   renderVideos('all');
+
+  const handleVideoModeChange = () => {
+    const nextMode = isMobileVideoMode();
+    if (nextMode !== currentMobileMode) {
+      renderVideos(currentVideoFilter);
+    }
+  };
+  if (typeof mobileViewportQuery.addEventListener === 'function') {
+    mobileViewportQuery.addEventListener('change', handleVideoModeChange);
+    coarsePointerQuery.addEventListener('change', handleVideoModeChange);
+  }
 
   videoFilterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {

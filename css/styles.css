@@ -1058,6 +1058,59 @@ body.hero-ready .hero-actions {
   display: block;
 }
 
+/* Mobile tap-to-play indicator (hidden on desktop) */
+.video-mobile-play {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(4, 10, 24, 0.76);
+  border: 1px solid rgba(207, 228, 255, 0.34);
+  color: #ffffff;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--motion-ease);
+}
+
+.video-mobile-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  margin-left: 2px;
+}
+
+.video-card.is-mobile-mode .video-sound-badge {
+  display: none;
+}
+
+.video-card.is-mobile-mode .video-mobile-play {
+  display: inline-flex;
+  opacity: 1;
+}
+
+.video-card.is-mobile-mode.is-playing .video-mobile-play {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.88);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .video-sound-badge {
+    display: none;
+  }
+  .video-mobile-play {
+    display: inline-flex;
+  }
+  .video-card.is-playing .video-mobile-play {
+    opacity: 0;
+  }
+}
+
 .video-meta {
   padding: 0 2px;
 }
