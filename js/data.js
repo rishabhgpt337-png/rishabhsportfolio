@@ -7,11 +7,11 @@ window.PORTFOLIO_CONFIG = {
     name: 'Rishabh Gupta',
     handle: '@rishabhgpt_',
     location: 'Mumbai, India',
-    whatsappUrl: 'https://wa.me/COUNTRYCODEPHONENUMBER', // Replace COUNTRYCODEPHONENUMBER with your personal number
+    whatsappUrl: 'https://wa.me/COUNTRYCODEPHONENUMBER',
     instagramUrl: 'https://instagram.com/rishabhgpt_',
     githubUrl: 'https://github.com/rishabhgpt337-png',
-    linkedinUrl: '#', // Optional: replace '#' with your LinkedIn URL
-    email: 'hello@rishabhgupta.example' // Optional: replace with your personal email
+    linkedinUrl: '#',
+    email: 'hello@rishabhgupta.example'
   },
 
   projects: {
@@ -27,7 +27,7 @@ window.PORTFOLIO_CONFIG = {
         'Creative direction and social media content',
         'Visual identity'
       ],
-      stack: [], // Intentionally left blank — do not invent stack details
+      stack: [],
       status: 'Live Website',
       liveUrl: 'https://luxorafinale.vercel.app/',
       liveLabel: 'Open Live Project',
@@ -97,46 +97,118 @@ window.PORTFOLIO_CONFIG = {
     image: 'assets/editorial-05.jpg'
   },
 
-  /**
-   * VIDEO & CREATIVE SHOWCASE
-   * Add your .mp4/.webm paths in `videoSrc` when ready.
-   */
   videos: [
     {
-      id: 'reel-01',
+      id: 'varun-mayya-collage',
       format: 'reel',
-      formatLabel: 'Vertical Reel · 9:16',
-      title: 'Vertical Reel 01',
-      caption: 'Add your .mp4 file path in js/data.js to play this reel.',
-      poster: 'assets/editorial-04.jpg',
-      videoSrc: ''
+      formatLabel: 'Talking Head Reel · 9:16',
+      title: 'Paper-Collage Kinetic Type Explainer',
+      caption: '100xEngineers (Varun Mayya). Paper-collage typography, hand-drawn cursor, and censor-bar reveals.',
+      videoSrc: 'assets/videos/100xEngineers_Varun_Mayya_PaperCollage_Explainer.mp4'
     },
     {
-      id: 'landscape-01',
-      format: 'landscape',
-      formatLabel: 'Landscape Video · 16:9',
-      title: 'Landscape Video 01',
-      caption: 'Add your .mp4 file path in js/data.js to play this video.',
-      poster: 'assets/editorial-03.jpg',
-      videoSrc: ''
-    },
-    {
-      id: 'reel-02',
+      id: 'sharan-cupid',
       format: 'reel',
-      formatLabel: 'Vertical Reel · 9:16',
-      title: 'Vertical Reel 02',
-      caption: 'Add your .mp4 file path in js/data.js to play this reel.',
-      poster: 'assets/editorial-05.jpg',
-      videoSrc: ''
+      formatLabel: 'Talking Head Reel · 9:16',
+      title: 'Cupid Case Study & Sourced Chart',
+      caption: 'Finance with Sharan. Four b-roll registers cut against studio head with editorial bar charts.',
+      videoSrc: 'assets/videos/Sharan_Hegde_Cupid_CaseStudy_Chart_Reel.mp4'
     },
     {
-      id: 'landscape-02',
+      id: 'sharan-ndtv',
+      format: 'reel',
+      formatLabel: 'Talking Head Reel · 9:16',
+      title: 'NDTV Profit News Card & Kinetic Title',
+      caption: 'Finance with Sharan. Custom news card graphics, gold lower-third, and greenscreen compositing.',
+      videoSrc: 'assets/videos/Sharan_Hegde_NDTV_NewsCard_Graphics_Reel.mp4'
+    },
+    {
+      id: 'raj-food-broll',
+      format: 'reel',
+      formatLabel: 'Talking Head Reel · 9:16',
+      title: 'Cutaway-Per-Sentence & Keyword Captions',
+      caption: 'Figuring Out (Raj Shamani). Rapid b-roll cutaways paired with colour-accented captions.',
+      videoSrc: 'assets/videos/Raj_Shamani_FiguringOut_FoodBRoll_Cutaways_Reel.mp4'
+    },
+    {
+      id: 'raj-titan',
+      format: 'reel',
+      formatLabel: 'Talking Head Reel · 9:16',
+      title: 'Sponsored Segment Pacing & Brand Card',
+      caption: 'Figuring Out (Raj Shamani). Tight caption consistency and hard cut to black-and-gold end card.',
+      videoSrc: 'assets/videos/Raj_Shamani_FiguringOut_Titan_BrandCard_Reel.mp4'
+    },
+    {
+      id: 'ali-pill-captions',
+      format: 'reel',
+      formatLabel: 'International Reel · 9:16',
+      title: 'Talking Head with Comped Assets',
+      caption: 'Ali Abdaal. Punch-in reframes every 1.1s with pill captions and cut-out PNG props.',
+      videoSrc: 'assets/videos/Ali_Abdaal_CompedAssets_PillCaptions_Reel.mp4'
+    },
+    {
+      id: 'ali-gold-serif',
+      format: 'reel',
+      formatLabel: 'International Reel · 9:16',
+      title: 'Gold Serif Topic Cards & Numbered Badge',
+      caption: 'Ali Abdaal. Serif topic cards, circled numeral badges, and line-art overlays.',
+      videoSrc: 'assets/videos/Ali_Abdaal_GoldSerif_TopicCards_NumberedBadge_Reel.mp4'
+    },
+    {
+      id: 'futuro-avenue',
       format: 'landscape',
-      formatLabel: 'Landscape Video · 16:9',
-      title: 'Landscape Video 02',
-      caption: 'Add your .mp4 file path in js/data.js to play this video.',
-      poster: 'assets/editorial-01.jpg',
-      videoSrc: ''
+      formatLabel: 'Real Estate Film · 16:9',
+      title: 'Luxury House Tour (Sony FX6)',
+      caption: 'Futuro Avenue. Golden-hour drone opener, gimbal doorway walkthroughs, and warm grading.',
+      videoSrc: 'assets/videos/Futuro_Avenue_Luxury_House_Tour_SonyFX6_4K.mp4'
+    },
+    {
+      id: 'ad-lake-tahoe',
+      format: 'landscape',
+      formatLabel: 'Real Estate Film · 16:9',
+      title: 'Lake Tahoe $75M Mansion Tour',
+      caption: 'Architectural Digest. Chaptered room-title cards, texture inserts, and golden-hour aerials.',
+      videoSrc: 'assets/videos/Architectural_Digest_LakeTahoe_75M_Mansion_Tour.mp4'
+    },
+    {
+      id: 'wesmile-showreel',
+      format: 'reel',
+      formatLabel: 'Podcast Edit · 9:16',
+      title: 'Podcast-Edit Showreel (B-Roll & Motion)',
+      caption: 'WeSmile Media. B-roll cutaways, chromatic transitions, kinetic type, and stat badges.',
+      videoSrc: 'assets/videos/WeSmile_Media_Podcast_Showreel_BRoll_MotionGraphics.mp4'
+    },
+    {
+      id: 'doac-police',
+      format: 'reel',
+      formatLabel: 'Podcast Edit · 9:16',
+      title: 'Ex Corrupt Police Officer Breaks Down',
+      caption: 'Diary Of A CEO Clips. Oversized condensed-italic caps and split-stack reaction frames.',
+      videoSrc: 'assets/videos/DiaryOfACEO_Clips_CorruptPoliceOfficer.mp4'
+    },
+    {
+      id: 'wtf-kumar-birla',
+      format: 'reel',
+      formatLabel: 'Podcast Edit · 9:16',
+      title: 'Cleared CA Within 6 Months? (Kumar Birla)',
+      caption: 'WTF Clips. Lowercase cyan keyword captions and guest-credential headline bar.',
+      videoSrc: 'assets/videos/WTF_Clips_KumarBirla_CyanKeywordCaptions.mp4'
+    },
+    {
+      id: 'chris-williamson',
+      format: 'reel',
+      formatLabel: 'Podcast Edit · 9:16',
+      title: 'Why British People Are So Proper',
+      caption: 'Modern Wisdom (Chris Williamson). Two-camera shot-reverse-shot rhythm and tungsten key.',
+      videoSrc: 'assets/videos/Chris_Williamson_ModernWisdom_BritishPeople.mp4'
+    },
+    {
+      id: 'rajnikant-samsung',
+      format: 'landscape',
+      formatLabel: 'YouTube Case Study · 16:9',
+      title: 'Why Samsung Killed Its Camera Business?',
+      caption: 'Rajnikant Sharma. High-density cuts, 3D/archival b-roll pipelines, and animated keyword titles.',
+      videoSrc: 'assets/videos/Rajnikant_Sharma_WhySamsungKilledItsCameraBusiness.mp4'
     }
   ]
 };

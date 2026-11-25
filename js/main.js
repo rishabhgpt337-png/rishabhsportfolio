@@ -466,7 +466,7 @@
 
       const hasVideo = Boolean(item.videoSrc);
       const mediaHtml = hasVideo
-        ? `<video src="${item.videoSrc}" poster="${item.poster}" muted loop playsinline preload="metadata"></video>`
+        ? `<video src="${item.videoSrc}#t=0.5" muted loop playsinline preload="metadata"></video>`
         : `<img src="${item.poster}" alt="${item.title}" width="840" height="627" loading="lazy" decoding="async" />`;
 
       card.innerHTML = `
@@ -606,7 +606,8 @@
       modalImg.hidden = true;
       modalVideo.hidden = false;
       modalVideo.src = videoItem.videoSrc;
-      modalVideo.poster = videoItem.poster;
+      if (videoItem.poster) modalVideo.poster = videoItem.poster;
+      else modalVideo.removeAttribute('poster');
       modalVideo.play().catch(() => {});
     } else {
       modalVideo.hidden = true;
