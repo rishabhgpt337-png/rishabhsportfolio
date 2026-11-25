@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-  <link rel="stylesheet" href="css/styles.css?v=20261125-6" />
+  <link rel="stylesheet" href="css/styles.css?v=20261125-9" />
   <link rel="stylesheet" href="css/lenis.css" />
 </head>
 <body>
@@ -153,20 +153,24 @@
           </a>
         </div>
 
-        <div class="work-cards-grid">
-          <!-- PROJECT 01: LUXORA -->
-          <article class="work-card reveal-item" data-reveal="up" data-stagger="0">
+        <div class="work-stage-grid" id="workStageGrid">
+          <!-- PROJECT 01: LUXORA (Left) -->
+          <article class="work-card work-card-side reveal-item" data-work-index="0" data-reveal="left" data-stagger="0">
             <img class="work-card-bg" src="assets/editorial-01.jpg" alt="LUXORA luxury interior design" width="840" height="627" loading="lazy" decoding="async" />
             <div class="work-card-scrim"></div>
+            <div class="work-card-reflection" aria-hidden="true"></div>
             <div class="work-card-content">
-              <span class="card-spark" aria-hidden="true">&#10022;</span>
+              <div class="work-card-top">
+                <span class="work-card-num">01/03</span>
+                <span class="card-spark" aria-hidden="true">&#10022;</span>
+              </div>
               <div class="work-card-bottom">
                 <h3 class="work-card-title work-title-serif">LUXORA</h3>
                 <p class="work-card-sub">Luxury Interior &amp; Space Design, Mumbai</p>
                 <div class="work-card-actions">
                   <a href="https://luxorafinale.vercel.app/" target="_blank" rel="noopener noreferrer" class="card-pill-btn">
-                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
                     <span>Visit Project</span>
+                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
                   </a>
                   <button type="button" class="card-detail-link js-open-project" data-project-id="luxora">Details</button>
                 </div>
@@ -174,19 +178,23 @@
             </div>
           </article>
 
-          <!-- PROJECT 02: KOURAGE FITNESS -->
-          <article class="work-card reveal-item" data-reveal="up" data-stagger="1">
+          <!-- PROJECT 02: KOURAGE FITNESS (Center Highlighted) -->
+          <article class="work-card work-card-center is-featured reveal-item" data-work-index="1" data-reveal="scale" data-stagger="1">
             <img class="work-card-bg" src="assets/editorial-02.jpg" alt="Kourage Fitness live website" width="840" height="627" loading="lazy" decoding="async" />
             <div class="work-card-scrim"></div>
+            <div class="work-card-reflection" aria-hidden="true"></div>
             <div class="work-card-content">
-              <span class="card-spark" aria-hidden="true">&#10022;</span>
+              <div class="work-card-top">
+                <span class="work-card-num">02/03</span>
+                <span class="card-spark" aria-hidden="true">&#10022;</span>
+              </div>
               <div class="work-card-bottom">
                 <h3 class="work-card-title">KOURAGE <span class="title-sub">FITNESS</span></h3>
                 <p class="work-card-sub">Live Website &middot; Next.js &amp; Vercel</p>
                 <div class="work-card-actions">
-                  <a href="https://kouragefitness.in/" target="_blank" rel="noopener noreferrer" class="card-pill-btn">
-                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
+                  <a href="https://kouragefitness.in/" target="_blank" rel="noopener noreferrer" class="card-pill-btn card-pill-primary">
                     <span>Visit Website</span>
+                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
                   </a>
                   <button type="button" class="card-detail-link js-open-project" data-project-id="kourage">Details</button>
                 </div>
@@ -194,24 +202,38 @@
             </div>
           </article>
 
-          <!-- PROJECT 03: ROBLOX & GAMING -->
-          <article class="work-card reveal-item" data-reveal="up" data-stagger="2">
+          <!-- PROJECT 03: ROBLOX & GAMING (Right) -->
+          <article class="work-card work-card-side reveal-item" data-work-index="2" data-reveal="right" data-stagger="2">
             <img class="work-card-bg" src="assets/editorial-03.jpg" alt="Roblox and Play Store racing game" width="840" height="627" loading="lazy" decoding="async" />
             <div class="work-card-scrim"></div>
+            <div class="work-card-reflection" aria-hidden="true"></div>
             <div class="work-card-content">
-              <span class="card-spark" aria-hidden="true">&#10022;</span>
+              <div class="work-card-top">
+                <span class="work-card-num">03/03</span>
+                <span class="card-spark" aria-hidden="true">&#10022;</span>
+              </div>
               <div class="work-card-bottom">
                 <h3 class="work-card-title">ROBLOX &amp; GAMING</h3>
                 <p class="work-card-sub">Racing Game &middot; Play Store (Editable)</p>
                 <div class="work-card-actions">
                   <button type="button" class="card-pill-btn js-open-project" data-project-id="roblox">
-                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
                     <span>Explore Game</span>
+                    <span class="pill-arrow" aria-hidden="true">&rarr;</span>
                   </button>
                 </div>
               </div>
             </div>
           </article>
+        </div>
+
+        <div class="work-stage-nav reveal-item" data-reveal="up" data-stagger="3" aria-label="Project showcase navigation">
+          <button type="button" class="stage-arrow-btn" id="workPrevBtn" aria-label="Focus previous project">&larr;</button>
+          <div class="stage-indicators" role="tablist" aria-label="Select highlighted project">
+            <button type="button" class="stage-dot" data-work-dot="0" aria-label="Highlight LUXORA (01/03)"></button>
+            <button type="button" class="stage-dot is-active" data-work-dot="1" aria-label="Highlight Kourage Fitness (02/03)"></button>
+            <button type="button" class="stage-dot" data-work-dot="2" aria-label="Highlight Roblox and Gaming (03/03)"></button>
+          </div>
+          <button type="button" class="stage-arrow-btn" id="workNextBtn" aria-label="Focus next project">&rarr;</button>
         </div>
       </div>
     </section>
@@ -415,6 +437,6 @@
 
   <script src="js/vendor/lenis.min.js"></script>
   <script src="js/data.js?v=20261125-3"></script>
-  <script src="js/main.js?v=20261125-8"></script>
+  <script src="js/main.js?v=20261125-9"></script>
 </body>
 </html>

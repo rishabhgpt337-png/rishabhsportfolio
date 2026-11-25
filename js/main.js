@@ -432,6 +432,28 @@
   observeReveals(document);
 
   /* ============================================================
+     3B. SELECTED WORK STAGE INDICATORS
+     ============================================================ */
+  const workCards = Array.from(document.querySelectorAll('#workStageGrid .work-card'));
+  const workDots = Array.from(document.querySelectorAll('[data-work-dot]'));
+  const workPrevBtn = document.getElementById('workPrevBtn');
+  const workNextBtn = document.getElementById('workNextBtn');
+  let featuredWorkIndex = 1;
+
+  function setFeaturedWork(idx) {
+    if (!workCards.length) return;
+    featuredWorkIndex = (idx + workCards.length) % workCards.length;
+    workCards.forEach((c, i) => c.classList.toggle('is-featured', i === featuredWorkIndex));
+    workDots.forEach((d, i) => d.classList.toggle('is-active', i === featuredWorkIndex));
+  }
+
+  workDots.forEach((dot) => {
+    dot.addEventListener('click', () => setFeaturedWork(Number(dot.dataset.workDot) || 0));
+  });
+  if (workPrevBtn) workPrevBtn.addEventListener('click', () => setFeaturedWork(featuredWorkIndex - 1));
+  if (workNextBtn) workNextBtn.addEventListener('click', () => setFeaturedWork(featuredWorkIndex + 1));
+
+  /* ============================================================
      4. VIDEO & CREATIVE SHOWCASE
         - Desktop: Autoplay muted on viewport entry + single unmute toggle
         - Mobile: Tap-to-play with original audio, paused initially, zero pre-buffering
@@ -490,7 +512,7 @@
   function stopMobileCard(card, resetTime) {
     if (!card) return;
     const vid = card.querySelector('.video-player');
-    card.classList.remove('is-playing');
+    card.classList.remove('is-playing', 'is-buffering');
     card.setAttribute('aria-pressed', 'false');
     if (vid) {
       vid.pause();
@@ -514,25 +536,47 @@
       stopMobileCard(activeMobileCard, false);
     }
 
+    // Ensure playsInline / webkit-playsinline + synchronous play() in user gesture for iOS Safari
+    vid.playsInline = true;
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('webkit-playsinline', 'true');
     if (!vid.getAttribute('src') && vid.dataset.src) {
       vid.setAttribute('src', vid.dataset.src);
     }
     vid.muted = false;
+    vid.defaultMuted = false;
     vid.loop = false;
     activeMobileCard = card;
     card.setAttribute('aria-pressed', 'true');
+    card.classList.add('is-buffering');
 
-    const p = vid.play();
-    if (p && typeof p.then === 'function') {
-      p.then(() => {
-        if (activeMobileCard === card && !vid.paused) {
-          card.classList.add('is-playing');
-        }
-      }).catch(() => {
-        stopMobileCard(card, false);
-      });
-    } else {
-      card.classList.add('is-playing');
+    try {
+      const p = vid.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          card.classList.remove('is-buffering');
+          if (activeMobileCard === card && !vid.paused) {
+            card.classList.add('is-playing');
+          }
+        }).catch(() => {
+          // If unmuted autoplay-policy check rejects on WebKit edge case, retry muted
+          vid.muted = true;
+          const retry = vid.play();
+          if (retry && typeof retry.then === 'function') {
+            retry.then(() => {
+              card.classList.remove('is-buffering');
+              card.classList.add('is-playing');
+            }).catch(() => stopMobileCard(card, false));
+          } else {
+            stopMobileCard(card, false);
+          }
+        });
+      } else {
+        card.classList.remove('is-buffering');
+        card.classList.add('is-playing');
+      }
+    } catch (err) {
+      stopMobileCard(card, false);
     }
   }
 
@@ -616,11 +660,12 @@
     let videoElHtml = '';
     if (hasVideo) {
       if (mobileMode) {
-        // Mobile: no src and preload="none" until user taps, zero upfront buffering
-        videoElHtml = `<video class="video-player" data-src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} playsinline preload="none"></video>`;
+        // iOS Safari & mobile: keep src present with preload="none" so 0 bytes buffer upfront
+        // while allowing synchronous vid.play() inside the tap gesture.
+        videoElHtml = `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} playsinline webkit-playsinline="true" x-webkit-airplay="allow" preload="none"></video>`;
       } else {
         const preloadMode = idx < 4 ? 'metadata' : 'none';
-        videoElHtml = `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="${preloadMode}"></video>`;
+        videoElHtml = `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline webkit-playsinline="true" preload="${preloadMode}"></video>`;
       }
     }
 
@@ -652,7 +697,21 @@
 
     if (hasVideo) {
       const vidEl = card.querySelector('.video-player');
-      vidEl.addEventListener('playing', () => card.classList.add('is-playing'));
+      vidEl.playsInline = true;
+      vidEl.addEventListener('playing', () => {
+        card.classList.remove('is-buffering');
+        card.classList.add('is-playing');
+      });
+      vidEl.addEventListener('waiting', () => {
+        if (mobileMode && activeMobileCard === card) card.classList.add('is-buffering');
+      });
+      vidEl.addEventListener('error', () => {
+        card.classList.remove('is-buffering', 'is-playing');
+        if (mobileMode && activeMobileCard === card) {
+          stopMobileCard(card, false);
+          showToast('Video could not load — tap to retry');
+        }
+      });
 
       if (mobileMode) {
         vidEl.addEventListener('ended', () => stopMobileCard(card, true));
