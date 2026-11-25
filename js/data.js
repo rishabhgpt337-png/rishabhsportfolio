@@ -99,67 +99,67 @@ window.PORTFOLIO_CONFIG = {
 
   videos: [
     {
+      id: 'futuro-avenue',
+      format: 'landscape',
+      title: 'Luxury House Tour',
+      caption: 'Futuro Avenue · Golden-hour aerials and gimbal walkthrough.',
+      poster: 'assets/videos/posters/Futuro_Avenue_Luxury_House_Tour_SonyFX6_4K.jpg',
+      videoSrc: 'assets/videos/Futuro_Avenue_Luxury_House_Tour_SonyFX6_4K.mp4'
+    },
+    {
       id: 'varun-mayya-collage',
       format: 'reel',
-      formatLabel: 'Talking Head Reel · 9:16',
-      title: 'Paper-Collage Kinetic Type Explainer',
-      caption: '100xEngineers (Varun Mayya). Paper-collage typography, hand-drawn cursor, and censor-bar reveals.',
+      title: 'Paper-Collage Kinetic Explainer',
+      caption: '100xEngineers · Kinetic typography and hand-drawn elements.',
+      poster: 'assets/videos/posters/100xEngineers_Varun_Mayya_PaperCollage_Explainer.jpg',
       videoSrc: 'assets/videos/100xEngineers_Varun_Mayya_PaperCollage_Explainer.mp4'
     },
     {
       id: 'sharan-cupid',
       format: 'reel',
-      formatLabel: 'Talking Head Reel · 9:16',
-      title: 'Cupid Case Study & Sourced Chart',
-      caption: 'Finance with Sharan. Four b-roll registers cut against studio head with editorial bar charts.',
+      title: 'Cupid Case Study',
+      caption: 'Finance with Sharan · Multi-register visual storytelling.',
+      poster: 'assets/videos/posters/Sharan_Hegde_Cupid_CaseStudy_Chart_Reel.jpg',
       videoSrc: 'assets/videos/Sharan_Hegde_Cupid_CaseStudy_Chart_Reel.mp4'
     },
     {
       id: 'sharan-ndtv',
       format: 'reel',
-      formatLabel: 'Talking Head Reel · 9:16',
-      title: 'NDTV Profit News Card & Kinetic Title',
-      caption: 'Finance with Sharan. Custom news card graphics, gold lower-third, and greenscreen compositing.',
+      title: 'NDTV Profit News Feature',
+      caption: 'Finance with Sharan · Custom news cards and motion overlays.',
+      poster: 'assets/videos/posters/Sharan_Hegde_NDTV_NewsCard_Graphics_Reel.jpg',
       videoSrc: 'assets/videos/Sharan_Hegde_NDTV_NewsCard_Graphics_Reel.mp4'
     },
     {
       id: 'raj-food-broll',
       format: 'reel',
-      formatLabel: 'Talking Head Reel · 9:16',
-      title: 'Cutaway-Per-Sentence & Keyword Captions',
-      caption: 'Figuring Out (Raj Shamani). Rapid b-roll cutaways paired with colour-accented captions.',
+      title: 'Rapid Cutaway Narrative',
+      caption: 'Figuring Out · Fast-paced visual cutaways and captions.',
+      poster: 'assets/videos/posters/Raj_Shamani_FiguringOut_FoodBRoll_Cutaways_Reel.jpg',
       videoSrc: 'assets/videos/Raj_Shamani_FiguringOut_FoodBRoll_Cutaways_Reel.mp4'
     },
     {
       id: 'raj-titan',
       format: 'reel',
-      formatLabel: 'Talking Head Reel · 9:16',
-      title: 'Sponsored Segment Pacing & Brand Card',
-      caption: 'Figuring Out (Raj Shamani). Tight caption consistency and hard cut to black-and-gold end card.',
+      title: 'Brand Integration Cut',
+      caption: 'Figuring Out · Clean pacing and brand end-card transition.',
+      poster: 'assets/videos/posters/Raj_Shamani_FiguringOut_Titan_BrandCard_Reel.jpg',
       videoSrc: 'assets/videos/Raj_Shamani_FiguringOut_Titan_BrandCard_Reel.mp4'
     },
     {
       id: 'ali-pill-captions',
       format: 'reel',
-      formatLabel: 'International Reel · 9:16',
-      title: 'Talking Head with Comped Assets',
-      caption: 'Ali Abdaal. Punch-in reframes every 1.1s with pill captions and cut-out PNG props.',
+      title: 'Comped Asset Storytelling',
+      caption: 'Ali Abdaal · Dynamic reframes and layered visual cutouts.',
+      poster: 'assets/videos/posters/Ali_Abdaal_CompedAssets_PillCaptions_Reel.jpg',
       videoSrc: 'assets/videos/Ali_Abdaal_CompedAssets_PillCaptions_Reel.mp4'
-    },
-    {
-      id: 'futuro-avenue',
-      format: 'landscape',
-      formatLabel: 'Real Estate Film · 16:9',
-      title: 'Luxury House Tour (Sony FX6)',
-      caption: 'Futuro Avenue. Golden-hour drone opener, gimbal doorway walkthroughs, and warm grading.',
-      videoSrc: 'assets/videos/Futuro_Avenue_Luxury_House_Tour_SonyFX6_4K.mp4'
     },
     {
       id: 'wesmile-showreel',
       format: 'reel',
-      formatLabel: 'Podcast Edit · 9:16',
-      title: 'Podcast-Edit Showreel (B-Roll & Motion)',
-      caption: 'WeSmile Media. B-roll cutaways, chromatic transitions, kinetic type, and stat badges.',
+      title: 'Podcast Motion Showreel',
+      caption: 'WeSmile Media · Motion graphics, cutaways, and transitions.',
+      poster: 'assets/videos/posters/WeSmile_Media_Podcast_Showreel_BRoll_MotionGraphics.jpg',
       videoSrc: 'assets/videos/WeSmile_Media_Podcast_Showreel_BRoll_MotionGraphics.mp4'
     }
   ]

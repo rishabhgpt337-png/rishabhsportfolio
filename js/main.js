@@ -450,58 +450,114 @@
   const videoFilterBtns = Array.from(document.querySelectorAll('[data-video-filter]'));
   const videosData = Array.isArray(CONFIG.videos) ? CONFIG.videos : [];
 
+  function buildVideoCard(item, idx) {
+    const card = document.createElement('article');
+    const isLandscape = item.format === 'landscape';
+    card.className = `video-card reveal-item ${isLandscape ? 'is-landscape' : 'is-reel'}`;
+    card.dataset.reveal = 'up';
+    card.dataset.stagger = String(idx % 4);
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${item.title} — hover to preview`);
+
+    const posterSrc = item.poster || '';
+    const hasVideo = Boolean(item.videoSrc);
+    const videoElHtml = hasVideo
+      ? `<video class="video-player" src="${item.videoSrc}"${posterSrc ? ` poster="${posterSrc}"` : ''} muted loop playsinline preload="metadata"></video>`
+      : '';
+
+    card.innerHTML = `
+      <div class="video-frame">
+        ${posterSrc ? `<img class="video-poster" src="${posterSrc}" alt="${item.title}" loading="lazy" decoding="async" />` : ''}
+        ${videoElHtml}
+      </div>
+      <div class="video-meta">
+        <h3 class="video-title">${item.title}</h3>
+        <p class="video-desc">${item.caption || ''}</p>
+      </div>
+    `;
+
+    if (hasVideo) {
+      const vidEl = card.querySelector('.video-player');
+      let resetTimer = null;
+
+      const startPreview = () => {
+        if (resetTimer) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+        const playPromise = vidEl.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.then(() => {
+            if (card.matches(':hover') || card.dataset.touchPlaying === '1' || document.activeElement === card) {
+              card.classList.add('is-playing');
+            }
+          }).catch(() => {});
+        } else {
+          card.classList.add('is-playing');
+        }
+      };
+
+      const stopPreview = () => {
+        card.classList.remove('is-playing');
+        delete card.dataset.touchPlaying;
+        vidEl.pause();
+        resetTimer = setTimeout(() => {
+          if (!card.classList.contains('is-playing')) {
+            try { vidEl.currentTime = 0; } catch (e) {}
+          }
+        }, 320);
+      };
+
+      card.addEventListener('mouseenter', startPreview);
+      card.addEventListener('mouseleave', stopPreview);
+      card.addEventListener('focusin', startPreview);
+      card.addEventListener('focusout', stopPreview);
+
+      card.addEventListener('click', () => {
+        if (!finePointerQuery.matches) {
+          if (card.classList.contains('is-playing')) {
+            stopPreview();
+          } else {
+            card.dataset.touchPlaying = '1';
+            startPreview();
+          }
+        } else {
+          openVideoModal(item);
+        }
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openVideoModal(item);
+        }
+      });
+    }
+
+    return card;
+  }
+
   function renderVideos(filter) {
     if (!videoGrid) return;
     videoGrid.innerHTML = '';
     const filtered = filter === 'all' ? videosData : videosData.filter((v) => v.format === filter);
+    const landscapeItems = filtered.filter((v) => v.format === 'landscape');
+    const reelItems = filtered.filter((v) => v.format !== 'landscape');
 
-    filtered.forEach((item, idx) => {
-      const card = document.createElement('article');
-      card.className = 'video-card reveal-item';
-      card.dataset.reveal = 'up';
-      card.dataset.stagger = String(idx % 4);
-      card.tabIndex = 0;
-      card.setAttribute('role', 'button');
-      card.setAttribute('aria-label', `Preview ${item.title}`);
+    if (landscapeItems.length) {
+      const landscapeWrap = document.createElement('div');
+      landscapeWrap.className = 'video-landscape-grid';
+      landscapeItems.forEach((item, idx) => landscapeWrap.appendChild(buildVideoCard(item, idx)));
+      videoGrid.appendChild(landscapeWrap);
+    }
 
-      const hasVideo = Boolean(item.videoSrc);
-      const mediaHtml = hasVideo
-        ? `<video src="${item.videoSrc}#t=0.5" muted loop playsinline preload="metadata"></video>`
-        : `<img src="${item.poster}" alt="${item.title}" width="840" height="627" loading="lazy" decoding="async" />`;
+    if (reelItems.length) {
+      const reelsWrap = document.createElement('div');
+      reelsWrap.className = 'video-reels-grid';
+      reelItems.forEach((item, idx) => reelsWrap.appendChild(buildVideoCard(item, idx)));
+      videoGrid.appendChild(reelsWrap);
+    }
 
-      card.innerHTML = `
-        <div class="video-thumb">
-          ${mediaHtml}
-          <span class="video-center-play" aria-hidden="true">&#9654;</span>
-        </div>
-        <div class="video-card-body">
-          <p class="video-format">${item.formatLabel}</p>
-          <h3 class="video-title">${item.title}</h3>
-        </div>
-      `;
-
-      if (hasVideo) {
-        const vidEl = card.querySelector('video');
-        card.addEventListener('mouseenter', () => vidEl && vidEl.play().catch(() => {}));
-        card.addEventListener('mouseleave', () => {
-          if (vidEl) {
-            vidEl.pause();
-            vidEl.currentTime = 0;
-          }
-        });
-      }
-
-      const openHandler = () => openVideoModal(item);
-      card.addEventListener('click', openHandler);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openHandler();
-        }
-      });
-
-      videoGrid.appendChild(card);
-    });
     observeReveals(videoGrid);
   }
 
@@ -595,7 +651,7 @@
   }
 
   function openVideoModal(videoItem) {
-    modalCategory.textContent = videoItem.formatLabel;
+    modalCategory.textContent = videoItem.format === 'landscape' ? 'Landscape Film · 16:9' : 'Vertical Reel · 9:16';
     modalTitle.textContent = videoItem.title;
     modalDesc.textContent = videoItem.caption;
     modalList.innerHTML = '';
