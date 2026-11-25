@@ -3,6 +3,3 @@ server.log
 server.err
 .DS_Store
 Thumbs.db
-# Videos exceeding GitHub's 100 MB single-file limit (kept locally for http://localhost:8000)
-assets/videos/Architectural_Digest_LakeTahoe_75M_Mansion_Tour.mp4
-assets/videos/Rajnikant_Sharma_WhySamsungKilledItsCameraBusiness.mp4
